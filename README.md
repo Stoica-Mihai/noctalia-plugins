@@ -6,7 +6,7 @@ Personal plugin source for [Noctalia v5](https://github.com/noctalia-dev/noctali
 
 ```
 catalog.toml            # source catalog: one [[plugin]] row per plugin
-<author>/<plugin>/      # plugin id is "<author>/<plugin>"
+<plugin>/               # plugin id "<author>/<plugin>" lives at "<plugin>/" by convention
   plugin.toml           # manifest: id, name, min_noctalia + [[widget]]/[[panel]]/... entries
   *.luau                # entry scripts
   translations/en.json  # strings for label_key / description_key
