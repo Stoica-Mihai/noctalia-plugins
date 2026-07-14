@@ -36,7 +36,7 @@ Commit changes, then point a source at the repo (any git URL works, including a 
 [[plugins.source]]
 kind = "git"
 name = "mine"
-location = "https://github.com/<you>/noctalia-plugins"
+location = "https://github.com/Stoica-Mihai/noctalia-plugins"
 ```
 
 Git sources are cloned bloblessly into `~/.local/state/noctalia/plugins/sources/<name>/repo`
