@@ -1,0 +1,9 @@
+[[plugin]]
+id = "mcs/hello"
+name = "Hello"
+version = "0.1.0"
+author = "MCS"
+description = "Minimal example bar widget"
+license = "MIT"
+min_noctalia = "5.0.0"
+tags = ["example"]
