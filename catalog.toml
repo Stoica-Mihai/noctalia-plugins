@@ -9,6 +9,17 @@ min_noctalia = "5.0.0"
 tags = ["example"]
 
 [[plugin]]
+id = "mcs/bluetooth-count"
+name = "Bluetooth Count"
+version = "0.1.0"
+author = "MCS"
+description = "Bluetooth glyph with an always-visible connected-device count"
+license = "MIT"
+min_noctalia = "5.0.0"
+tags = ["bluetooth", "indicator"]
+icon = "bluetooth-connected"
+
+[[plugin]]
 id = "mcs/mouse-battery"
 name = "Mouse Battery"
 version = "0.1.0"

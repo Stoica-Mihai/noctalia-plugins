@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "show_zero": {
+      "label": "Show zero",
+      "description": "Show the count even when no devices are connected"
+    },
+    "hide_when_off": {
+      "label": "Hide when Bluetooth is off",
+      "description": "Hide the widget entirely while the adapter is powered off"
+    }
+  }
+}
