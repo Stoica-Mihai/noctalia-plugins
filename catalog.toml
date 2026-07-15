@@ -7,3 +7,14 @@ description = "Minimal example bar widget"
 license = "MIT"
 min_noctalia = "5.0.0"
 tags = ["example"]
+
+[[plugin]]
+id = "mcs/mouse-battery"
+name = "Mouse Battery"
+version = "0.1.0"
+author = "MCS"
+description = "Keychron mouse battery level over raw HID (standalone, needs python3)"
+license = "MIT"
+min_noctalia = "5.0.0"
+tags = ["hardware", "battery", "mouse"]
+icon = "mouse-2"

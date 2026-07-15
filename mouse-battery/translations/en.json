@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "poll_seconds": {
+      "label": "Poll interval (seconds)",
+      "description": "How often to read the mouse battery level"
+    },
+    "show_percent": {
+      "label": "Show percentage",
+      "description": "Show the numeric percentage next to the battery glyph"
+    }
+  }
+}
