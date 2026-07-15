@@ -33,7 +33,7 @@ icon = "wifi"
 [[plugin]]
 id = "mcs/mouse-battery"
 name = "Mouse Battery"
-version = "0.1.0"
+version = "0.2.0"
 author = "MCS"
 description = "Keychron mouse battery level over raw HID (standalone, needs python3)"
 license = "MIT"

@@ -30,6 +30,10 @@ The widget hides itself when no mouse answers (dongle unplugged / asleep).
 
 - **Poll interval (seconds)** — how often the battery is read (default 60).
 - **Show percentage** — numeric percent next to the battery glyph (default on).
+- **Low battery notification** — notify when the level drops below the
+  threshold (default on; fires once per episode, re-arms when charging or back
+  above the threshold).
+- **Low battery threshold (%)** — default 20.
 
 ## Credits
 

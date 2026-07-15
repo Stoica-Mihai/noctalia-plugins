@@ -7,6 +7,14 @@
     "show_percent": {
       "label": "Show percentage",
       "description": "Show the numeric percentage next to the battery glyph"
+    },
+    "notify_low": {
+      "label": "Low battery notification",
+      "description": "Notify when the battery drops below the threshold (once per episode)"
+    },
+    "low_threshold": {
+      "label": "Low battery threshold (%)",
+      "description": "Battery percentage that triggers the low battery notification"
     }
   }
 }

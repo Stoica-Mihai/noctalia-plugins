@@ -8,6 +8,21 @@ local function glyphFor(percent, charging)
     return "battery-" .. math.clamp(level, 0, 4)
 end
 
+-- One notification per below-threshold episode; re-arms above threshold or on charge.
+local lowNotified = false
+
+local function checkLow(percent, charging)
+    local threshold = barWidget.getConfig("low_threshold") or 20
+    if charging or percent > threshold then
+        lowNotified = false
+        return
+    end
+    if not lowNotified and barWidget.getConfig("notify_low") then
+        noctalia.notifyError("Mouse battery low", percent .. "% remaining")
+        lowNotified = true
+    end
+end
+
 local function poll()
     local script = noctalia.pluginDir() .. "/battery.py"
     noctalia.runAsync("python3 " .. script, function(r)
@@ -20,6 +35,7 @@ local function poll()
             barWidget.setVisible(false)
             return
         end
+        checkLow(data.percent, data.charging)
         barWidget.setVisible(true)
         barWidget.setGlyph(glyphFor(data.percent, data.charging))
         if barWidget.getConfig("show_percent") then

@@ -1,6 +1,6 @@
 id = "mcs/mouse-battery"
 name = "Mouse Battery"
-version = "0.1.0"
+version = "0.2.0"
 author = "MCS"
 description = "Keychron mouse battery level over raw HID (standalone, needs python3)"
 license = "MIT"
@@ -27,3 +27,19 @@ type = "bool"
 label_key = "settings.show_percent.label"
 description_key = "settings.show_percent.description"
 default = true
+
+[[widget.setting]]
+key = "notify_low"
+type = "bool"
+label_key = "settings.notify_low.label"
+description_key = "settings.notify_low.description"
+default = true
+
+[[widget.setting]]
+key = "low_threshold"
+type = "int"
+label_key = "settings.low_threshold.label"
+description_key = "settings.low_threshold.description"
+default = 20
+min = 5
+max = 50
