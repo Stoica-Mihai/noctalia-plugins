@@ -1,5 +1,9 @@
 {
   "settings": {
+    "notify_events": {
+      "label": "Notify on connect/disconnect",
+      "description": "Send a notification when a device connects or disconnects"
+    },
     "show_zero": {
       "label": "Show zero",
       "description": "Show the count even when no devices are connected"

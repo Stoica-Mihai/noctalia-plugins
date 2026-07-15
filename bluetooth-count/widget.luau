@@ -50,13 +50,38 @@ local function render(powered, names)
     end
 end
 
+-- nil until the first successful query so startup state never notifies.
+local known = nil
+
+local function notifyDiff(names)
+    local current = {}
+    for _, name in ipairs(names) do
+        current[name] = true
+    end
+    if known ~= nil and barWidget.getConfig("notify_events") then
+        for name in pairs(current) do
+            if not known[name] then
+                noctalia.notify("Bluetooth", name .. " connected")
+            end
+        end
+        for name in pairs(known) do
+            if not current[name] then
+                noctalia.notify("Bluetooth", name .. " disconnected")
+            end
+        end
+    end
+    known = current
+end
+
 local function refresh()
     noctalia.runAsync(QUERY, function(r)
         if r.exitCode ~= 0 then
             barWidget.setVisible(false)
             return
         end
-        render(parse(r.stdout))
+        local powered, names = parse(r.stdout)
+        notifyDiff(names)
+        render(powered, names)
     end)
 end
 

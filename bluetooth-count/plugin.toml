@@ -13,6 +13,13 @@ id = "count"
 entry = "widget.luau"
 
 [[widget.setting]]
+key = "notify_events"
+type = "bool"
+label_key = "settings.notify_events.label"
+description_key = "settings.notify_events.description"
+default = true
+
+[[widget.setting]]
 key = "show_zero"
 type = "bool"
 label_key = "settings.show_zero.label"

@@ -20,5 +20,7 @@ fallback re-check runs only as a safety net if the stream dies). Requires
 
 ## Settings
 
+- **Notify on connect/disconnect** — notification when a device connects or
+  disconnects (default on; startup state never notifies)
 - **Show zero** — show `0` instead of hiding the count when nothing is connected
 - **Hide when Bluetooth is off** — remove the widget entirely while powered off
