@@ -1,0 +1,41 @@
+id = "mcs/wifi"
+name = "WiFi"
+version = "0.1.0"
+author = "MCS"
+description = "WiFi-only indicator: signal glyph, SSID, connect/disconnect notifications"
+license = "MIT"
+min_noctalia = "5.0.0"
+tags = ["wifi", "network", "indicator"]
+icon = "wifi"
+
+[[widget]]
+id = "wifi"
+entry = "widget.luau"
+
+[[widget.setting]]
+key = "show_ssid"
+type = "bool"
+label_key = "settings.show_ssid.label"
+description_key = "settings.show_ssid.description"
+default = true
+
+[[widget.setting]]
+key = "show_signal"
+type = "bool"
+label_key = "settings.show_signal.label"
+description_key = "settings.show_signal.description"
+default = false
+
+[[widget.setting]]
+key = "notify_events"
+type = "bool"
+label_key = "settings.notify_events.label"
+description_key = "settings.notify_events.description"
+default = true
+
+[[widget.setting]]
+key = "hide_when_off"
+type = "bool"
+label_key = "settings.hide_when_off.label"
+description_key = "settings.hide_when_off.description"
+default = false

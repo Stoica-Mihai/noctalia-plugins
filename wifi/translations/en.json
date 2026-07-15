@@ -1,0 +1,20 @@
+{
+  "settings": {
+    "show_ssid": {
+      "label": "Show SSID",
+      "description": "Show the connected network name next to the glyph"
+    },
+    "show_signal": {
+      "label": "Show signal strength",
+      "description": "Show the signal percentage next to the glyph"
+    },
+    "notify_events": {
+      "label": "Notify on connect/disconnect",
+      "description": "Send a notification when WiFi connects or disconnects"
+    },
+    "hide_when_off": {
+      "label": "Hide when WiFi is off",
+      "description": "Hide the widget entirely while the radio is disabled"
+    }
+  }
+}
