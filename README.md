@@ -43,6 +43,21 @@ Git sources are cloned bloblessly into `~/.local/state/noctalia/plugins/sources/
 and enabled plugins are exported to `.../plugins/materialized/<name>/`.
 Update with `noctalia msg plugins update <name>` or `auto_update = true` (6h tick).
 
+## Plugins
+
+- **`mcs/hello`** — minimal example bar widget (clock + greeting setting).
+- **`mcs/mouse-battery`** — Keychron mouse battery bar widget. Reads the battery
+  over raw HID (VID `0x3434`, 8K dongle protocol) via a bundled pure-stdlib
+  `battery.py`; requires `python3` and read/write access to the hidraw node.
+  Without [squeak](https://github.com/Stoica-Mihai/squeak) installed, add a udev rule:
+
+  ```
+  # /etc/udev/rules.d/70-keychron-mouse.rules
+  KERNEL=="hidraw*", ATTRS{idVendor}=="3434", MODE="0660", TAG+="uaccess"
+  ```
+
+  then `sudo udevadm control --reload && sudo udevadm trigger` and replug.
+
 ## Lint
 
 ```
