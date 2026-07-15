@@ -20,13 +20,15 @@ In a `*.toml` under `~/.config/noctalia/`:
 [[plugins.source]]
 kind = "path"
 name = "dev"
-location = "~/Documents/git/noctalia-plugins"
+location = "/home/you/path/to/noctalia-plugins"
 
 [plugins]
-enabled = ["mcs/hello"]
+enabled = ["mcs/wifi"]
 ```
 
 Path sources are scanned in place; `.luau` edits hot-reload via file watch.
+Use an absolute location — with `~` the plugin store never loads READMEs or
+thumbnails (shell bug: the file cache skips tilde expansion).
 
 ## Use as a git source
 
@@ -45,7 +47,11 @@ Update with `noctalia msg plugins update <name>` or `auto_update = true` (6h tic
 
 ## Plugins
 
-- **`mcs/hello`** — minimal example bar widget (clock + greeting setting).
+- **`mcs/bluetooth-count`** — Bluetooth glyph with an always-visible
+  connected-device count, event-driven via `bluetoothctl --monitor`, with
+  connect/disconnect notifications.
+- **`mcs/wifi`** — WiFi-only indicator: signal-band glyph, SSID, notifications;
+  never shows wired interfaces. Requires NetworkManager.
 - **`mcs/mouse-battery`** — Keychron mouse battery bar widget. Reads the battery
   over raw HID (VID `0x3434`, 8K dongle protocol) via a bundled pure-stdlib
   `battery.py`; requires `python3` and read/write access to the hidraw node.

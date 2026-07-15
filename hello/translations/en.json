@@ -1,8 +1,0 @@
-{
-  "settings": {
-    "greeting": {
-      "label": "Greeting",
-      "description": "Text shown before the clock"
-    }
-  }
-}
