@@ -20,6 +20,17 @@ tags = ["bluetooth", "indicator"]
 icon = "bluetooth-connected"
 
 [[plugin]]
+id = "mcs/wallpaper-weather"
+name = "Weather Wallpaper"
+version = "0.1.0"
+author = "MCS"
+description = "Wallpaper follows the weather outside — picks from your folders per condition"
+license = "MIT"
+min_noctalia = "5.0.0"
+tags = ["wallpaper", "weather", "ambient"]
+icon = "cloud"
+
+[[plugin]]
 id = "mcs/wifi"
 name = "WiFi"
 version = "0.1.0"

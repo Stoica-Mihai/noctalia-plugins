@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "wallpapers_dir": {
+      "label": "Wallpapers folder",
+      "description": "Root folder containing one subfolder per weather condition"
+    },
+    "check_minutes": {
+      "label": "Check interval (minutes)",
+      "description": "How often to compare the wallpaper against the current weather"
+    },
+    "rotate_within_condition": {
+      "label": "Rotate within condition",
+      "description": "Pick a new wallpaper on every check, even if the weather has not changed"
+    }
+  }
+}
