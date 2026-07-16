@@ -5,6 +5,7 @@ author = "MCS"
 description = "WiFi-only indicator: signal glyph, SSID, connect/disconnect notifications"
 license = "MIT"
 min_noctalia = "5.0.0"
+plugin_api = 3
 tags = ["wifi", "network", "indicator"]
 icon = "wifi"
 

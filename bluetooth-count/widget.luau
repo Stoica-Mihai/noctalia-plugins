@@ -22,7 +22,7 @@ end
 local function render(powered, names)
     local count = #names
 
-    if not powered and barWidget.getConfig("hide_when_off") then
+    if not powered and noctalia.getConfig("hide_when_off") then
         barWidget.setVisible(false)
         return
     end
@@ -45,7 +45,7 @@ local function render(powered, names)
         barWidget.setTooltip(rows)
     else
         barWidget.setGlyph("bluetooth")
-        barWidget.setText(barWidget.getConfig("show_zero") and "0" or "")
+        barWidget.setText(noctalia.getConfig("show_zero") and "0" or "")
         barWidget.setTooltip("No devices connected")
     end
 end
@@ -58,7 +58,7 @@ local function notifyDiff(names)
     for _, name in ipairs(names) do
         current[name] = true
     end
-    if known ~= nil and barWidget.getConfig("notify_events") then
+    if known ~= nil and noctalia.getConfig("notify_events") then
         for name in pairs(current) do
             if not known[name] then
                 noctalia.notify("Bluetooth", name .. " connected")

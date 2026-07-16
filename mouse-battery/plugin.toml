@@ -1,12 +1,13 @@
 id = "mcs/mouse-battery"
-name = "Mouse Battery"
-version = "0.2.0"
+name = "Battery Monitor"
+version = "0.3.0"
 author = "MCS"
-description = "Keychron mouse battery level over raw HID (standalone, needs python3)"
+description = "Peripheral battery monitor: upower devices + Keychron mouse over raw HID"
 license = "MIT"
 min_noctalia = "5.0.0"
-tags = ["hardware", "battery", "mouse"]
-icon = "mouse-2"
+plugin_api = 3
+tags = ["hardware", "battery", "mouse", "controller", "bluetooth"]
+icon = "battery-3"
 
 [[widget]]
 id = "battery"

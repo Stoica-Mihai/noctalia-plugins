@@ -1,23 +1,25 @@
-# Mouse Battery
+# Battery Monitor
 
-Bar widget showing the battery level of a Keychron wireless mouse (M6 8K /
-Ultra-Link 8K dongle, VID `0x3434`), read directly over raw HID. Standalone —
-no companion app required.
+One bar widget for every peripheral battery. Merges two sources:
 
-## How it works
+- **upower devices** — game controllers, Bluetooth headsets/keyboards, and
+  anything else with a battery that the kernel exposes to upower.
+- **Keychron mouse over raw HID** — read via the bundled `battery.py`, because
+  the mouse's proprietary protocol is invisible to upower.
 
-The widget runs the bundled `battery.py` (pure Python stdlib) on a configurable
-interval. The script scans `/sys/class/hidraw` for the Keychron config
-collection (usage page `0xFFC1`), sends a settings-block read (`0xB3 0x06`),
-and parses the battery byte from the reply: low 7 bits = percent, high bit =
+Shows the **lowest** battery by default; **scroll** over the widget to cycle
+through devices. The tooltip lists every device with its level and a `+` when
 charging.
 
-The widget hides itself when no mouse answers (dongle unplugged / asleep).
+Low-battery notifications are **per device** and **persist across restarts**
+(state stored under `pluginDataDir()`), so you get notified once per drain, not
+on every reload.
 
 ## Requirements
 
-- `python3` (stdlib only)
-- Read/write access to the hidraw node. Without a rule that grants it, add:
+- `upower` for standard peripherals (game controllers, BT audio, …)
+- `python3` + hidraw access for the Keychron mouse source. Without
+  [squeak](https://github.com/Stoica-Mihai/squeak) installed, add a udev rule:
 
   ```
   # /etc/udev/rules.d/70-keychron-mouse.rules
@@ -26,16 +28,18 @@ The widget hides itself when no mouse answers (dongle unplugged / asleep).
 
   then `sudo udevadm control --reload && sudo udevadm trigger` and replug.
 
+Neither is strictly required — the widget shows whatever it can find, and hides
+itself when nothing reports a battery.
+
 ## Settings
 
-- **Poll interval (seconds)** — how often the battery is read (default 60).
-- **Show percentage** — numeric percent next to the battery glyph (default on).
-- **Low battery notification** — notify when the level drops below the
-  threshold (default on; fires once per episode, re-arms when charging or back
-  above the threshold).
+- **Poll interval (seconds)** — how often batteries are read (default 60).
+- **Show percentage** — numeric percent next to the glyph (default on).
+- **Low battery notification** — notify when a device drops below the threshold
+  (per device, once per drain, persisted).
 - **Low battery threshold (%)** — default 20.
 
-## Credits
+## Note
 
-Protocol reverse-engineered in [squeak](https://github.com/Stoica-Mihai/squeak),
-a full Keychron mouse configurator for Linux.
+The plugin id is still `mcs/mouse-battery` (kept for compatibility); it began
+life as a mouse-only widget.

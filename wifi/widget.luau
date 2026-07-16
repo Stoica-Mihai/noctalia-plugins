@@ -33,7 +33,7 @@ end
 local lastSsid = false
 
 local function notifyChange(ssid)
-    if lastSsid ~= false and lastSsid ~= ssid and barWidget.getConfig("notify_events") then
+    if lastSsid ~= false and lastSsid ~= ssid and noctalia.getConfig("notify_events") then
         if ssid then
             noctalia.notify("WiFi", "Connected to " .. ssid)
         elseif lastSsid then
@@ -44,7 +44,7 @@ local function notifyChange(ssid)
 end
 
 local function render(enabled, ssid, signal)
-    if not enabled and barWidget.getConfig("hide_when_off") then
+    if not enabled and noctalia.getConfig("hide_when_off") then
         barWidget.setVisible(false)
         return
     end
@@ -66,10 +66,10 @@ local function render(enabled, ssid, signal)
 
     barWidget.setGlyph(glyphForSignal(signal))
     local parts = {}
-    if barWidget.getConfig("show_ssid") then
+    if noctalia.getConfig("show_ssid") then
         table.insert(parts, ssid)
     end
-    if barWidget.getConfig("show_signal") then
+    if noctalia.getConfig("show_signal") then
         table.insert(parts, signal .. "%")
     end
     barWidget.setText(table.concat(parts, " "))

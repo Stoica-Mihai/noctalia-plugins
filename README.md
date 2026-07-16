@@ -52,10 +52,12 @@ Update with `noctalia msg plugins update <name>` or `auto_update = true` (6h tic
   connect/disconnect notifications.
 - **`mcs/wifi`** — WiFi-only indicator: signal-band glyph, SSID, notifications;
   never shows wired interfaces. Requires NetworkManager.
-- **`mcs/mouse-battery`** — Keychron mouse battery bar widget. Reads the battery
-  over raw HID (VID `0x3434`, 8K dongle protocol) via a bundled pure-stdlib
-  `battery.py`; requires `python3` and read/write access to the hidraw node.
-  Without [squeak](https://github.com/Stoica-Mihai/squeak) installed, add a udev rule:
+- **`mcs/mouse-battery`** — Battery Monitor: one widget aggregating every
+  peripheral battery. Merges upower devices (controllers, BT headsets/keyboards)
+  with a Keychron mouse read over raw HID (VID `0x3434`) via a bundled pure-stdlib
+  `battery.py`. Scroll to cycle devices; per-device low-battery notifications
+  persist across restarts. The mouse source needs `python3` + hidraw access —
+  without [squeak](https://github.com/Stoica-Mihai/squeak) installed, add a udev rule:
 
   ```
   # /etc/udev/rules.d/70-keychron-mouse.rules
