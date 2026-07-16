@@ -14,6 +14,10 @@
       "label": "Low battery notification",
       "description": "Notify when the phone battery drops below the threshold"
     },
+    "notify_received": {
+      "label": "Notify on received files",
+      "description": "Show a notification when the phone sends a file to this PC"
+    },
     "low_threshold": {
       "label": "Low battery threshold (%)",
       "description": "Phone battery percentage that triggers the low notification"

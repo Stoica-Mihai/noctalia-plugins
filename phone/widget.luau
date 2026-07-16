@@ -90,6 +90,19 @@ noctalia.runStream(
     end
 )
 
+-- Notify on files received from the phone. The standalone daemon has no applet
+-- to post these, so the widget does it. shareReceived carries the file URL.
+noctalia.runStream(
+    "dbus-monitor --session \"interface='org.kde.kdeconnect.device.share',member='shareReceived'\"",
+    function(line)
+        local url = line:match('string "(.-)"')
+        if url and noctalia.getConfig("notify_received") then
+            local name = noctalia.string.urlDecode(url:match("([^/]+)$") or url)
+            noctalia.notify("Phone", "Received " .. name)
+        end
+    end
+)
+
 noctalia.setUpdateInterval(30000)
 
 function update()
