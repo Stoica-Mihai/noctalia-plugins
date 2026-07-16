@@ -1,12 +1,12 @@
 id = "mcs/phone"
 name = "Phone"
-version = "0.1.0"
+version = "0.2.0"
 author = "MCS"
-description = "Phone battery via KDE Connect; click to ring the phone"
+description = "Phone via KDE Connect: battery + ring, and file transfer to/from the phone"
 license = "MIT"
 min_noctalia = "5.0.0"
 plugin_api = 3
-tags = ["phone", "kdeconnect", "battery"]
+tags = ["phone", "kdeconnect", "battery", "files"]
 icon = "device-mobile"
 
 [[widget]]
@@ -42,6 +42,24 @@ description_key = "settings.low_threshold.description"
 default = 15
 min = 5
 max = 50
+
+[[widget.setting]]
+key = "hide_when_absent"
+type = "bool"
+label_key = "settings.hide_when_absent.label"
+description_key = "settings.hide_when_absent.description"
+default = true
+
+[[widget]]
+id = "files"
+entry = "files.luau"
+
+[[widget.setting]]
+key = "storage_subpath"
+type = "string"
+label_key = "settings.storage_subpath.label"
+description_key = "settings.storage_subpath.description"
+default = "storage/emulated/0"
 
 [[widget.setting]]
 key = "hide_when_absent"

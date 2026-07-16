@@ -28,7 +28,24 @@ poll is the fallback.
 - **Hide when phone absent** — hide the widget when no phone is reachable
   (default on).
 
+## Files widget
+
+A second widget (`Phone Files`) transfers files over KDE Connect's SFTP mount:
+
+- **Left click** — mount the phone's storage and open it in a file manager
+  (browse, pull files out, and drop files in — the mount is read-write)
+- **Right click** — pick files with `zenity` and send them to the phone
+- **Middle click** — unmount
+
+The glyph is a folder while mounted, a phone otherwise.
+
+Requires `sshfs` (the SFTP mount backend) and, on the phone, the KDE Connect
+**"Filesystem expose"** plugin enabled with storage permission granted. The
+mount lands at `/run/user/<uid>/<device>/`; the **Storage subpath** setting
+picks which folder to open (Android primary storage is `storage/emulated/0`).
+
 ## Note
 
 Phone **notifications** are bridged into your system by the KDE Connect daemon
 itself — they appear as normal desktop notifications without this widget.
+

@@ -52,8 +52,9 @@ Update with `noctalia msg plugins update <name>` or `auto_update = true` (6h tic
   connect/disconnect notifications.
 - **`mcs/wifi`** — WiFi-only indicator: signal-band glyph, SSID, notifications;
   never shows wired interfaces. Requires NetworkManager.
-- **`mcs/phone`** — phone battery via KDE Connect; click to ring the phone.
-  Event-driven over dbus. Requires `kdeconnect` + the phone app paired over LAN.
+- **`mcs/phone`** — phone via KDE Connect. Two widgets: battery (click to ring,
+  event-driven over dbus) and file transfer (mount/browse, send files, unmount).
+  Requires `kdeconnect` + phone app paired over LAN; files need `sshfs`.
 - **`mcs/battery-monitor`** — Battery Monitor: one widget aggregating every
   peripheral battery. Merges upower devices (controllers, BT headsets/keyboards)
   with a Keychron mouse read over raw HID (VID `0x3434`) via a bundled pure-stdlib

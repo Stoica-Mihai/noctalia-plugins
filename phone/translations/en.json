@@ -19,6 +19,10 @@
     "hide_when_absent": {
       "label": "Hide when phone absent",
       "description": "Hide the widget when no paired phone is reachable"
+    },
+    "storage_subpath": {
+      "label": "Storage subpath",
+      "description": "Path under the SFTP mount to open (Android primary storage is storage/emulated/0)"
     }
   }
 }
