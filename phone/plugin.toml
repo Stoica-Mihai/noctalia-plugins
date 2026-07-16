@@ -1,6 +1,6 @@
 id = "mcs/phone"
 name = "Phone"
-version = "0.3.0"
+version = "0.3.1"
 author = "MCS"
 description = "Phone via KDE Connect: battery in the bar, click to ring or open files"
 license = "MIT"
@@ -25,10 +25,10 @@ key = "click_action"
 type = "select"
 label_key = "settings.click_action.label"
 description_key = "settings.click_action.description"
-default = "ring"
+default = "files"
 options = [
-  { value = "ring", label_key = "settings.click_action.ring" },
   { value = "files", label_key = "settings.click_action.files" },
+  { value = "ring", label_key = "settings.click_action.ring" },
 ]
 
 [[widget.setting]]

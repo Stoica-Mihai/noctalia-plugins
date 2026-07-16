@@ -93,7 +93,7 @@ end
 
 -- Left click does either action, per the click_action setting.
 function onClick()
-    local action = noctalia.getConfig("click_action") or "ring"
+    local action = noctalia.getConfig("click_action") or "files"
     if action == "ring" then
         if phoneId then
             noctalia.runAsync("kdeconnect-cli --ring -d " .. phoneId)

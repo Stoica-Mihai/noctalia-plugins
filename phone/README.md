@@ -32,10 +32,10 @@ poll is the fallback.
 
 The **Left click action** setting picks what clicking the widget does:
 
-- **Ring the phone** (default) — makes the phone ring so you can find it.
-- **Open phone files** — mounts the phone's storage (SFTP, read-write) and opens
-  it in a file manager. Drag files out to pull, drag files in to push — both
-  directions in one window.
+- **Open phone files** (default) — mounts the phone's storage (SFTP, read-write)
+  and opens it in a file manager. Drag files out to pull, drag files in to push —
+  both directions in one window.
+- **Ring the phone** — makes the phone ring so you can find it.
 
 The files action needs `sshfs` (the SFTP mount backend) and, on the phone, the
 KDE Connect **"Filesystem expose"** plugin enabled with storage permission
