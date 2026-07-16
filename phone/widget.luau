@@ -95,8 +95,10 @@ noctalia.runStream(
 noctalia.runStream(
     "dbus-monitor --session \"interface='org.kde.kdeconnect.device.share',member='shareReceived'\"",
     function(line)
+        -- dbus-monitor emits its own NameAcquired/NameLost signals carrying bus
+        -- names like ":1.1316" — ignore anything that isn't a real file path/URL.
         local url = line:match('string "(.-)"')
-        if url and noctalia.getConfig("notify_received") then
+        if url and url:find("/") and not url:find("^:") and noctalia.getConfig("notify_received") then
             local name = noctalia.string.urlDecode(url:match("([^/]+)$") or url)
             noctalia.notify("Phone", "Received " .. name)
         end
