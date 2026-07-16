@@ -25,6 +25,15 @@ def first_usage_page(desc: bytes):
     return None
 
 
+def hid_name(uevent: str) -> str:
+    line = next((l for l in uevent.splitlines() if l.startswith("HID_NAME=")), "")
+    name = line[len("HID_NAME="):].strip()
+    # Kernel often doubles the vendor ("Keychron Keychron K6"); collapse repeats.
+    words = name.split()
+    deduped = [w for i, w in enumerate(words) if i == 0 or w != words[i - 1]]
+    return " ".join(deduped) or "Keychron device"
+
+
 def config_nodes():
     out = []
     try:
@@ -42,7 +51,7 @@ def config_nodes():
         if VID not in hid_id.upper():
             continue
         if first_usage_page(desc) == USAGE_PAGE_CONFIG:
-            out.append(f"/dev/{node}")
+            out.append((f"/dev/{node}", hid_name(uevent)))
     return out
 
 
@@ -74,12 +83,13 @@ def main():
     if not nodes:
         print(json.dumps({"error": "no-device"}))
         return 1
-    for path in nodes:
+    for path, name in nodes:
         try:
             result = probe(path)
         except OSError:
             result = None
         if result is not None:
+            result["name"] = name
             print(json.dumps(result))
             return 0
     # Nodes exist but none answered (idle transport) or permission denied.

@@ -1,6 +1,6 @@
 id = "mcs/battery-monitor"
 name = "Battery Monitor"
-version = "0.4.0"
+version = "0.4.1"
 author = "MCS"
 description = "Peripheral battery monitor: upower devices + Keychron mouse over raw HID"
 license = "MIT"

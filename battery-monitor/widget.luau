@@ -37,7 +37,7 @@ local function parse(stdout)
             local data = noctalia.json.decode(line)
             if data and data.percent then
                 table.insert(devices, {
-                    id = "keychron-mouse", name = "Mouse",
+                    id = "keychron-hid", name = data.name or "Keychron",
                     percent = data.percent, charging = data.charging == true,
                 })
             end
