@@ -25,9 +25,9 @@ icon = "wifi"
 [[plugin]]
 id = "mcs/phone"
 name = "Phone"
-version = "0.2.2"
+version = "0.3.0"
 author = "MCS"
-description = "Phone via KDE Connect: battery + ring, and file transfer to/from the phone"
+description = "Phone via KDE Connect: battery in the bar, click to ring or open files"
 license = "MIT"
 min_noctalia = "5.0.0"
 plugin_api = 3

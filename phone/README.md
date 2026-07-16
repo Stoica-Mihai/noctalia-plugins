@@ -28,20 +28,20 @@ poll is the fallback.
 - **Hide when phone absent** — hide the widget when no phone is reachable
   (default on).
 
-## Files widget
+## Left click action
 
-A second widget (`Phone Files`) transfers files over KDE Connect's SFTP mount.
-**Left click** mounts the phone's storage (read-write) and opens it in a file
-manager — drag files out to pull, drag files in to push, both directions in one
-window. (Only left click is used; noctalia reserves middle/right click for the
-bar's own menus.)
+The **Left click action** setting picks what clicking the widget does:
 
-The glyph is a folder while mounted, a phone otherwise.
+- **Ring the phone** (default) — makes the phone ring so you can find it.
+- **Open phone files** — mounts the phone's storage (SFTP, read-write) and opens
+  it in a file manager. Drag files out to pull, drag files in to push — both
+  directions in one window.
 
-Requires `sshfs` (the SFTP mount backend) and, on the phone, the KDE Connect
-**"Filesystem expose"** plugin enabled with storage permission granted. The
-mount lands at `/run/user/<uid>/<device>/`; the **Storage subpath** setting
-picks which folder to open (Android primary storage is `storage/emulated/0`).
+The files action needs `sshfs` (the SFTP mount backend) and, on the phone, the
+KDE Connect **"Filesystem expose"** plugin enabled with storage permission
+granted. The mount lands at `/run/user/<uid>/<device>/`; the **Storage subpath**
+setting picks which folder opens (Android primary storage is
+`storage/emulated/0`).
 
 ## Note
 

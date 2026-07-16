@@ -4,9 +4,11 @@
       "label": "Show percentage",
       "description": "Show the phone battery percentage next to the glyph"
     },
-    "ring_on_click": {
-      "label": "Ring on click",
-      "description": "Left-click the widget to make the phone ring (find it)"
+    "click_action": {
+      "label": "Left click action",
+      "description": "What left-clicking the widget does",
+      "ring": "Ring the phone",
+      "files": "Open phone files"
     },
     "notify_low": {
       "label": "Low battery notification",
