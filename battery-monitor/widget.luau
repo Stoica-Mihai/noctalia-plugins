@@ -17,7 +17,10 @@ end
 -- One shell call gathers all upower batteries + the mouse HID reading.
 local function gatherCommand()
     local script = noctalia.pluginDir() .. "/battery.py"
-    return "for d in $(upower -e | grep battery); do echo \"DEV $d\"; upower -i \"$d\"; done; "
+    -- Peripherals are named <type>_dev_<MAC> (mouse_dev, keyboard_dev, …), not
+    -- just battery_*, so filter by exclusion; parse drops any entry without a
+    -- percentage (line_power, etc.).
+    return "for d in $(upower -e | grep -vE 'DisplayDevice|line_power'); do echo \"DEV $d\"; upower -i \"$d\"; done; "
         .. "echo MOUSE; python3 " .. script .. " 2>/dev/null; true"
 end
 
