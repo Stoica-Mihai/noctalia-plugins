@@ -1,0 +1,51 @@
+id = "mcs/phone"
+name = "Phone"
+version = "0.1.0"
+author = "MCS"
+description = "Phone battery via KDE Connect; click to ring the phone"
+license = "MIT"
+min_noctalia = "5.0.0"
+plugin_api = 3
+tags = ["phone", "kdeconnect", "battery"]
+icon = "device-mobile"
+
+[[widget]]
+id = "phone"
+entry = "widget.luau"
+
+[[widget.setting]]
+key = "show_percent"
+type = "bool"
+label_key = "settings.show_percent.label"
+description_key = "settings.show_percent.description"
+default = true
+
+[[widget.setting]]
+key = "ring_on_click"
+type = "bool"
+label_key = "settings.ring_on_click.label"
+description_key = "settings.ring_on_click.description"
+default = true
+
+[[widget.setting]]
+key = "notify_low"
+type = "bool"
+label_key = "settings.notify_low.label"
+description_key = "settings.notify_low.description"
+default = true
+
+[[widget.setting]]
+key = "low_threshold"
+type = "int"
+label_key = "settings.low_threshold.label"
+description_key = "settings.low_threshold.description"
+default = 15
+min = 5
+max = 50
+
+[[widget.setting]]
+key = "hide_when_absent"
+type = "bool"
+label_key = "settings.hide_when_absent.label"
+description_key = "settings.hide_when_absent.description"
+default = true

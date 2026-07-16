@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "show_percent": {
+      "label": "Show percentage",
+      "description": "Show the phone battery percentage next to the glyph"
+    },
+    "ring_on_click": {
+      "label": "Ring on click",
+      "description": "Left-click the widget to make the phone ring (find it)"
+    },
+    "notify_low": {
+      "label": "Low battery notification",
+      "description": "Notify when the phone battery drops below the threshold"
+    },
+    "low_threshold": {
+      "label": "Low battery threshold (%)",
+      "description": "Phone battery percentage that triggers the low notification"
+    },
+    "hide_when_absent": {
+      "label": "Hide when phone absent",
+      "description": "Hide the widget when no paired phone is reachable"
+    }
+  }
+}

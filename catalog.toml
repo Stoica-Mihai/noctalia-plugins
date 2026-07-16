@@ -23,6 +23,18 @@ tags = ["wifi", "network", "indicator"]
 icon = "wifi"
 
 [[plugin]]
+id = "mcs/phone"
+name = "Phone"
+version = "0.1.0"
+author = "MCS"
+description = "Phone battery via KDE Connect; click to ring the phone"
+license = "MIT"
+min_noctalia = "5.0.0"
+plugin_api = 3
+tags = ["phone", "kdeconnect", "battery"]
+icon = "device-mobile"
+
+[[plugin]]
 id = "mcs/battery-monitor"
 name = "Battery Monitor"
 version = "0.4.2"
