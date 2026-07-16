@@ -123,6 +123,16 @@ local function poll()
     end)
 end
 
+-- Event-driven: upower emits "device added/removed/changed" lines on connect,
+-- disconnect, and battery changes → refresh immediately instead of waiting for
+-- the poll tick. The periodic poll below stays as a fallback and to pick up the
+-- Keychron mouse, which upower can't see.
+noctalia.runStream("upower --monitor", function(line)
+    if line:find("device ") then
+        poll()
+    end
+end)
+
 noctalia.setUpdateInterval((noctalia.getConfig("poll_seconds") or 60) * 1000)
 
 function update()

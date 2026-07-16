@@ -11,6 +11,10 @@ Shows the **lowest** battery by default; **scroll** over the widget to cycle
 through devices. The tooltip lists every device with its level and a `+` when
 charging.
 
+Updates are **event-driven** via `upower --monitor` — devices connecting and
+disconnecting reflect immediately, not on the next poll. The poll interval is a
+fallback and keeps the (non-upower) Keychron mouse reading fresh.
+
 Low-battery notifications are **per device** and **persist across restarts**
 (state stored under `pluginDataDir()`), so you get notified once per drain, not
 on every reload.
