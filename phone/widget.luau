@@ -3,15 +3,24 @@
 -- KDE Connect app paired. Phone notifications are bridged by the daemon itself
 -- into the system notification service — this widget doesn't handle those.
 
--- Reads the first paired+reachable device, then its battery via busctl.
+-- KDE Connect keeps a device flagged reachable for ~2 min after an abrupt
+-- network drop (dead TCP socket not yet timed out), so its own flag is unreliable
+-- for presence. Instead: take the daemon's device id + ip, then do a 1s TCP probe
+-- to the KDE Connect port — a fresh connect fails fast when the phone is really
+-- gone. Only emit battery JSON when the probe says the phone is actually there.
 local GATHER = [[
-id=$(kdeconnect-cli -a --id-name-only 2>/dev/null | head -1 | cut -d' ' -f1)
-if [ -n "$id" ]; then
-  name=$(kdeconnect-cli -a --id-name-only 2>/dev/null | head -1 | cut -d' ' -f2-)
-  base="/modules/kdeconnect/devices/$id/battery"
-  charge=$(busctl --user get-property org.kde.kdeconnect "$base" org.kde.kdeconnect.device.battery charge 2>/dev/null | awk '{print $2}')
-  charging=$(busctl --user get-property org.kde.kdeconnect "$base" org.kde.kdeconnect.device.battery isCharging 2>/dev/null | awk '{print $2}')
-  printf '{"id":"%s","name":"%s","charge":%s,"charging":%s}\n' "$id" "$name" "${charge:-null}" "${charging:-false}"
+line=$(kdeconnect-cli -a 2>/dev/null | head -1)
+id=$(echo "$line" | grep -oE '[0-9a-f]{32}' | head -1)
+ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+if [ -n "$id" ] && [ -n "$ip" ]; then
+  timeout 1 bash -c "exec 3<>/dev/tcp/$ip/1716" 2>/dev/null
+  if [ $? -ne 124 ]; then
+    name=$(echo "$line" | sed -n 's/^- \(.*\): [0-9a-f]\{32\}.*/\1/p')
+    base="/modules/kdeconnect/devices/$id/battery"
+    charge=$(busctl --user get-property org.kde.kdeconnect "$base" org.kde.kdeconnect.device.battery charge 2>/dev/null | awk '{print $2}')
+    charging=$(busctl --user get-property org.kde.kdeconnect "$base" org.kde.kdeconnect.device.battery isCharging 2>/dev/null | awk '{print $2}')
+    printf '{"id":"%s","name":"%s","charge":%s,"charging":%s}\n' "$id" "$name" "${charge:-null}" "${charging:-false}"
+  fi
 fi
 ]]
 
@@ -81,7 +90,7 @@ noctalia.runStream(
     end
 )
 
-noctalia.setUpdateInterval(60000)
+noctalia.setUpdateInterval(30000)
 
 function update()
     poll()
