@@ -30,12 +30,11 @@ poll is the fallback.
 
 ## Files widget
 
-A second widget (`Phone Files`) transfers files over KDE Connect's SFTP mount:
-
-- **Left click** — mount the phone's storage and open it in a file manager
-  (browse, pull files out, and drop files in — the mount is read-write)
-- **Right click** — pick files with `zenity` and send them to the phone
-- **Middle click** — unmount
+A second widget (`Phone Files`) transfers files over KDE Connect's SFTP mount.
+**Left click** mounts the phone's storage (read-write) and opens it in a file
+manager — drag files out to pull, drag files in to push, both directions in one
+window. (Only left click is used; noctalia reserves middle/right click for the
+bar's own menus.)
 
 The glyph is a folder while mounted, a phone otherwise.
 
