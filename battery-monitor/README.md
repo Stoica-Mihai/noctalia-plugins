@@ -39,7 +39,3 @@ itself when nothing reports a battery.
   (per device, once per drain, persisted).
 - **Low battery threshold (%)** — default 20.
 
-## Note
-
-The plugin id is still `mcs/mouse-battery` (kept for compatibility); it began
-life as a mouse-only widget.

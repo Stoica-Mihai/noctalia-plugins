@@ -23,7 +23,7 @@ tags = ["wifi", "network", "indicator"]
 icon = "wifi"
 
 [[plugin]]
-id = "mcs/mouse-battery"
+id = "mcs/battery-monitor"
 name = "Battery Monitor"
 version = "0.3.0"
 author = "MCS"

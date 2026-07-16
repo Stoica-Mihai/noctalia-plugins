@@ -52,7 +52,7 @@ Update with `noctalia msg plugins update <name>` or `auto_update = true` (6h tic
   connect/disconnect notifications.
 - **`mcs/wifi`** — WiFi-only indicator: signal-band glyph, SSID, notifications;
   never shows wired interfaces. Requires NetworkManager.
-- **`mcs/mouse-battery`** — Battery Monitor: one widget aggregating every
+- **`mcs/battery-monitor`** — Battery Monitor: one widget aggregating every
   peripheral battery. Merges upower devices (controllers, BT headsets/keyboards)
   with a Keychron mouse read over raw HID (VID `0x3434`) via a bundled pure-stdlib
   `battery.py`. Scroll to cycle devices; per-device low-battery notifications
