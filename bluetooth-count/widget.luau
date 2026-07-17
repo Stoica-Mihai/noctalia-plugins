@@ -73,15 +73,24 @@ local function notifyDiff(names)
     known = current
 end
 
+-- bluez may not be ready at shell launch; poll fast until the first successful
+-- query, then settle to the normal interval.
+local settled = false
+local warmDeadline = os.time() + 30
+
 local function refresh()
     noctalia.runAsync(QUERY, function(r)
         if r.exitCode ~= 0 then
             barWidget.setVisible(false)
-            return
+        else
+            local powered, names = parse(r.stdout)
+            notifyDiff(names)
+            render(powered, names)
         end
-        local powered, names = parse(r.stdout)
-        notifyDiff(names)
-        render(powered, names)
+        if not settled and (r.exitCode == 0 or os.time() >= warmDeadline) then
+            settled = true
+            noctalia.setUpdateInterval(60000)
+        end
     end)
 end
 
@@ -93,7 +102,8 @@ noctalia.runStream(MONITOR, function(line)
     end
 end)
 
-noctalia.setUpdateInterval(60000)
+-- Fast warm-up until the first successful query (see refresh()).
+noctalia.setUpdateInterval(3000)
 
 function update()
     refresh()

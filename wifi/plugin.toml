@@ -1,6 +1,6 @@
 id = "mcs/wifi"
 name = "WiFi"
-version = "0.1.0"
+version = "0.1.1"
 author = "MCS"
 description = "WiFi-only indicator: signal glyph, SSID, connect/disconnect notifications"
 license = "MIT"

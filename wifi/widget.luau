@@ -78,15 +78,24 @@ local function render(enabled, ssid, signal)
     })
 end
 
+-- NetworkManager may not be ready at shell launch; poll fast until the first
+-- successful query, then settle to the normal interval.
+local settled = false
+local warmDeadline = os.time() + 30
+
 local function refresh()
     noctalia.runAsync(QUERY, function(r)
         if r.exitCode ~= 0 then
             barWidget.setVisible(false)
-            return
+        else
+            local enabled, ssid, signal = parse(r.stdout)
+            notifyChange(ssid)
+            render(enabled, ssid, signal)
         end
-        local enabled, ssid, signal = parse(r.stdout)
-        notifyChange(ssid)
-        render(enabled, ssid, signal)
+        if not settled and (r.exitCode == 0 or os.time() >= warmDeadline) then
+            settled = true
+            noctalia.setUpdateInterval(30000)
+        end
     end)
 end
 
@@ -94,8 +103,8 @@ noctalia.runStream(MONITOR, function(line)
     refresh()
 end)
 
--- Fallback safety net; also refreshes the signal level periodically.
-noctalia.setUpdateInterval(30000)
+-- Fast warm-up until the first successful query; then fallback/refresh interval.
+noctalia.setUpdateInterval(3000)
 
 function update()
     refresh()

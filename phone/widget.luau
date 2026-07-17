@@ -69,12 +69,22 @@ local function render(data)
     })
 end
 
+-- The KDE Connect daemon is often not ready at shell launch, so the first poll
+-- can find no device. Poll fast until the phone appears (or a warm-up window
+-- elapses), then settle to the normal interval.
+local settled = false
+local warmDeadline = os.time() + 30
+
 local function poll()
     noctalia.runAsync(GATHER, function(r)
         local data = nil
         local line = (r.stdout or ""):match("({.-})")
         if line then data = noctalia.json.decode(line) end
         render(data)
+        if not settled and ((data and data.id) or os.time() >= warmDeadline) then
+            settled = true
+            noctalia.setUpdateInterval(30000)
+        end
     end)
 end
 
@@ -105,7 +115,8 @@ noctalia.runStream(
     end
 )
 
-noctalia.setUpdateInterval(30000)
+-- Fast warm-up until the first poll finds the phone (see poll()).
+noctalia.setUpdateInterval(3000)
 
 function update()
     poll()

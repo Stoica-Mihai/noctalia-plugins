@@ -118,11 +118,25 @@ local function render()
     barWidget.setTooltip(rows)
 end
 
+-- At shell launch upower/services may not be ready yet, so the first poll can
+-- come back empty. Poll fast until the first device appears (or a short warm-up
+-- window elapses), then settle to the configured interval — otherwise the widget
+-- stays blank until the next slow tick.
+local function realInterval()
+    return (noctalia.getConfig("poll_seconds") or 60) * 1000
+end
+local settled = false
+local warmDeadline = os.time() + 30
+
 local function poll()
     noctalia.runAsync(gatherCommand(), function(r)
         lastDevices = parse(r.stdout or "")
         checkLow(lastDevices)
         render()
+        if not settled and (#lastDevices > 0 or os.time() >= warmDeadline) then
+            settled = true
+            noctalia.setUpdateInterval(realInterval())
+        end
     end)
 end
 
@@ -136,14 +150,17 @@ noctalia.runStream("upower --monitor", function(line)
     end
 end)
 
-noctalia.setUpdateInterval((noctalia.getConfig("poll_seconds") or 60) * 1000)
+-- Fast warm-up interval until the first data lands (see poll()).
+noctalia.setUpdateInterval(3000)
 
 function update()
     poll()
 end
 
 function onConfigChanged()
-    noctalia.setUpdateInterval((noctalia.getConfig("poll_seconds") or 60) * 1000)
+    if settled then
+        noctalia.setUpdateInterval(realInterval())
+    end
     poll()
 end
 

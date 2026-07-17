@@ -1,6 +1,6 @@
 id = "mcs/phone"
 name = "Phone"
-version = "0.5.1"
+version = "0.5.2"
 author = "MCS"
 description = "Phone via KDE Connect: battery in the bar, click to ring or open files"
 license = "MIT"

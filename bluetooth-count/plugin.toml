@@ -1,6 +1,6 @@
 id = "mcs/bluetooth-count"
 name = "Bluetooth Count"
-version = "0.3.0"
+version = "0.3.1"
 author = "MCS"
 description = "Bluetooth glyph with an always-visible connected-device count"
 license = "MIT"
