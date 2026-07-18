@@ -42,10 +42,10 @@ function modeFan() send("mode", MODE_ID.fan) end
 local MODE_FN = { auto = "modeAuto", cool = "modeCool", dry = "modeDry", heat = "modeHeat", fan = "modeFan" }
 
 local function message(text)
-    return ui.column({ gap = 8 }, {
+    return ui.column({ gap = 8, padding = 14, fill = "surface", radius = 8 }, {
         ui.label({ text = "NetHome AC", fontWeight = "semibold" }),
         ui.separator({}),
-        ui.label({ text = text, color = "on_surface_variant" }),
+        ui.label({ text = text }),
     })
 end
 
@@ -81,9 +81,9 @@ rerender = function()
             ui.toggle({ checked = d.running, enabled = not busy, onChange = "setPower" }),
         }),
         ui.separator({}),
-        ui.label({ text = "Mode", color = "on_surface_variant" }),
+        ui.label({ text = "Mode" }),
         ui.row({ gap = 6 }, modeButtons),
-        ui.label({ text = "Target  " .. target .. "°", color = "on_surface_variant" }),
+        ui.label({ text = "Target  " .. target .. "°" }),
         ui.slider({
             min = 16,
             max = 32,
@@ -96,7 +96,7 @@ rerender = function()
     }
     if type(d.indoor) == "number" then
         kids[#kids + 1] = ui.row({ gap = 6 }, {
-            ui.label({ text = "Indoor", color = "on_surface_variant", flexGrow = 1 }),
+            ui.label({ text = "Indoor", flexGrow = 1 }),
             ui.label({ text = d.indoor .. "°" }),
         })
     end
@@ -104,7 +104,7 @@ rerender = function()
         kids[#kids + 1] = ui.label({ text = status.pending, color = "tertiary" })
     end
 
-    panel.render(ui.column({ gap = 10 }, kids))
+    panel.render(ui.column({ gap = 10, padding = 14, fill = "surface", radius = 8 }, kids))
 end
 
 noctalia.state.watch("status", function(s)
