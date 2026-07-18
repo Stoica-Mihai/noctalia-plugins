@@ -68,6 +68,10 @@ Update with `noctalia msg plugins update <name>` or `auto_update = true` (6h tic
   ```
 
   then `sudo udevadm control --reload && sudo udevadm trigger` and replug.
+- **`mcs/nethome`** — Midea AC via NetHome Plus: indoor temp + running state in
+  the bar, left click toggles power. One-time cloud login caches the device
+  token, then all traffic is LAN-only. Requires `midea-beautiful-air-cli`
+  (`uv tool install midea-beautiful-air`).
 
 ## Lint
 

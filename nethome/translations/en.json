@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "account": {
+      "label": "NetHome Plus account",
+      "description": "Email address of the NetHome Plus (Midea) account"
+    },
+    "password": {
+      "label": "NetHome Plus password",
+      "description": "Stored in plain text in the noctalia config; used once to fetch the device token, then all traffic is LAN-only"
+    },
+    "show_temp": {
+      "label": "Show indoor temperature",
+      "description": "Show the indoor temperature next to the glyph while the AC is reachable"
+    },
+    "hide_when_absent": {
+      "label": "Hide when AC absent",
+      "description": "Hide the widget when the AC is not reachable on the LAN"
+    },
+    "poll_interval": {
+      "label": "Poll interval (seconds)",
+      "description": "How often to query the AC over the LAN"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# NetHome AC
+
+Midea AC (paired in the NetHome Plus Android app) in the noctalia bar:
+indoor temperature + running state, left click toggles power.
+
+## Requires
+
+- `midea-beautiful-air-cli` on PATH: `uv tool install midea-beautiful-air`
+  (or `pipx install midea-beautiful-air`)
+- The AC on the same LAN as this machine.
+
+## How it works
+
+First poll with account + password set runs a one-time cloud `discover`
+(NetHome Plus login) and caches the device ip/token/key in
+`~/.cache/noctalia-nethome/device.env`. Every poll and command after that
+is a direct LAN exchange — no cloud. Changing account or password in the
+widget settings invalidates the cache and re-discovers.
+
+## Settings
+
+- **NetHome Plus account / password** — login for the one-time discover.
+  The password sits in plain text in the noctalia config.
+- **Show indoor temperature** — bar text on/off.
+- **Hide when AC absent** — hide vs. dimmed glyph when unreachable.
+- **Poll interval** — LAN status poll cadence (10–300 s).
