@@ -42,7 +42,7 @@ function modeFan() send("mode", MODE_ID.fan) end
 local MODE_FN = { auto = "modeAuto", cool = "modeCool", dry = "modeDry", heat = "modeHeat", fan = "modeFan" }
 
 local function message(text)
-    return ui.column({ gap = 8, padding = 14, fill = "surface", radius = 8 }, {
+    return ui.column({ gap = 8, padding = 4 }, {
         ui.label({ text = "NetHome AC", fontWeight = "semibold" }),
         ui.separator({}),
         ui.label({ text = text }),
@@ -106,7 +106,7 @@ rerender = function()
         kids[#kids + 1] = ui.label({ text = status.pending, color = "tertiary" })
     end
 
-    panel.render(ui.column({ gap = 10, padding = 14, fill = "surface", radius = 8 }, kids))
+    panel.render(ui.column({ gap = 10, padding = 4 }, kids))
 end
 
 noctalia.state.watch("status", function(s)
