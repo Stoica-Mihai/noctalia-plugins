@@ -24,13 +24,22 @@ function setPower(v)
 end
 
 function targetDrag(v)
-    dragTarget = math.floor(tonumber(v) + 0.5)
-    rerender()
+    local n = tonumber(v)
+    if n then
+        dragTarget = math.floor(n + 0.5)
+        rerender()
+    end
 end
 
+-- onDragEnd fires with no value — commit what the last onChange captured.
 function targetCommit(v)
+    local t = tonumber(v) or dragTarget
     dragTarget = nil
-    send("target", math.floor(tonumber(v) + 0.5))
+    if t then
+        send("target", math.floor(t + 0.5))
+    else
+        rerender()
+    end
 end
 
 function modeAuto() send("mode", MODE_ID.auto) end
