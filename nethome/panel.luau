@@ -63,13 +63,15 @@ rerender = function()
     local busy = status.pending ~= nil
     local target = dragTarget or d.target
 
+    -- The device silently ignores mode commands while powered off (accepted,
+    -- never applied), so the mode row is disabled when the AC is off.
     local modeButtons = {}
     for _, name in ipairs(MODE_LIST) do
         modeButtons[#modeButtons + 1] = ui.button({
             key = name,
             text = name,
             variant = (d.mode == MODE_ID[name]) and "default" or "ghost",
-            enabled = not busy,
+            enabled = not busy and d.running,
             flexGrow = 1,
             onClick = MODE_FN[name],
         })
@@ -81,7 +83,7 @@ rerender = function()
             ui.toggle({ checked = d.running, enabled = not busy, onChange = "setPower" }),
         }),
         ui.separator({}),
-        ui.label({ text = "Mode" }),
+        ui.label({ text = d.running and "Mode" or "Mode (turn on first)" }),
         ui.row({ gap = 6 }, modeButtons),
         ui.label({ text = "Target  " .. target .. "°" }),
         ui.slider({
