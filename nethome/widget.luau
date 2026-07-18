@@ -99,9 +99,12 @@ local configErr = nil
 local discoverNotified = false
 
 -- In-flight command awaiting confirmation by a status frame matching the
--- commanded field.
-local pending = nil -- { label, match = { key, value }, deadline = epoch }
-local PENDING_TIMEOUT = 45
+-- commanded field. The device flakily drops set commands (all protocol
+-- retries exhausted), so the command is re-sent — up to MAX_ATTEMPTS — each
+-- time a status frame comes back still unconfirmed.
+local pending = nil -- { label, match = { key, value }, kv, attempts, inFlight, deadline }
+local PENDING_TIMEOUT = 60
+local MAX_ATTEMPTS = 3
 -- Braille cell spinner: constant single-char footprint, dots orbit the 2x4 grid.
 local SPIN = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
 local spinIx = 0
@@ -133,6 +136,8 @@ local function matches(d, m)
     end
     return d[m.key] == m.value
 end
+
+local fireSet -- defined after poll; re-sends the pending command
 
 -- Panel-facing snapshot of everything the widget knows.
 local function publish()
@@ -224,6 +229,8 @@ local function onResult(d)
                 pending = nil
                 applyInterval()
                 renderData(d)
+            elseif not pending.inFlight then
+                fireSet()
             end
             publish()
             return true
@@ -292,6 +299,17 @@ local function poll()
     end, 60000)
 end
 
+-- Sends (or re-sends) the pending command, then polls for confirmation.
+fireSet = function()
+    if not pending or pending.attempts >= MAX_ATTEMPTS then return end
+    pending.attempts = pending.attempts + 1
+    pending.inFlight = true
+    noctalia.runAsync("NH_SET=" .. shq(pending.kv) .. " " .. SET, function()
+        if pending then pending.inFlight = false end
+        poll()
+    end, 60000)
+end
+
 -- Executes a panel command: sends it to the device and shows the pending
 -- spinner until a status frame confirms the commanded field.
 local function runCommand(action, value)
@@ -312,13 +330,11 @@ local function runCommand(action, value)
     else
         return
     end
-    pending = { label = label, match = match, deadline = os.time() + PENDING_TIMEOUT }
+    pending = { label = label, match = match, kv = kv, attempts = 0, deadline = os.time() + PENDING_TIMEOUT }
     applyInterval()
     renderPending()
     publish()
-    noctalia.runAsync("NH_SET=" .. shq(kv) .. " " .. SET, function()
-        poll()
-    end, 60000)
+    fireSet()
 end
 
 noctalia.state.watch("command", function(cmd)
