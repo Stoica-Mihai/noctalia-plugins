@@ -3,28 +3,43 @@
 -- then every poll and command is a direct LAN exchange. V2-protocol devices
 -- have no token/key (LAN is unauthenticated); the CLI still demands truthy
 -- values, so dummies are passed.
-local GATHER = [[
+--
+-- Discover (~40-60s) and status (~11s on devices that never answer the
+-- capabilities query) run as separate runAsync calls: each needs its own
+-- timeout budget, and runAsync defaults to 5s.
+
+-- Ensures the device cache exists. Prints {"ok":true} when cache is ready,
+-- an {"error":...} JSON otherwise. Discover stderr lands in discover.log.
+local DISCOVER = [[
 CACHE_DIR="$HOME/.cache/noctalia-nethome"
 CACHE="$CACHE_DIR/device.env"
 
 command -v midea-beautiful-air-cli >/dev/null 2>&1 || { echo '{"error":"nocli"}'; exit 0; }
+[ -s "$CACHE" ] && { echo '{"ok":true}'; exit 0; }
+
+field() { echo "$1" | sed -n "s/^  $2 *= *//p" | head -1; }
+tok() { case "$1" in None) echo "" ;; *) echo "$1" ;; esac; }
+
+if [ -z "$NH_ACCOUNT" ] || [ -z "$NH_PASSWORD" ]; then echo '{"error":"setup"}'; exit 0; fi
+umask 077; mkdir -p "$CACHE_DIR"
+out=$(midea-beautiful-air-cli discover --account "$NH_ACCOUNT" --password "$NH_PASSWORD" --credentials 2>"$CACHE_DIR/discover.log")
+ip=$(field "$out" addr); token=$(tok "$(field "$out" token)"); key=$(tok "$(field "$out" key)"); name=$(field "$out" name)
+if [ -z "$ip" ] || [ "$ip" = "Unknown" ]; then echo '{"error":"discover"}'; exit 0; fi
+printf 'IP=%q\nTOKEN=%q\nKEY=%q\nNAME=%q\n' "$ip" "$token" "$key" "$name" > "$CACHE"
+echo '{"ok":true}'
+]]
+
+-- LAN status from the cached device. Prints one JSON line.
+local STATUS = [[
+CACHE="$HOME/.cache/noctalia-nethome/device.env"
+[ -s "$CACHE" ] || { echo '{"error":"absent"}'; exit 0; }
+. "$CACHE"
 
 field() { echo "$1" | sed -n "s/^  $2 *= *//p" | head -1; }
 jesc() { echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 num() { case "$1" in ''|None) echo null ;; *) echo "$1" ;; esac; }
-tok() { case "$1" in None) echo "" ;; *) echo "$1" ;; esac; }
 
-if [ ! -s "$CACHE" ]; then
-  if [ -z "$NH_ACCOUNT" ] || [ -z "$NH_PASSWORD" ]; then echo '{"error":"setup"}'; exit 0; fi
-  out=$(timeout 60 midea-beautiful-air-cli discover --account "$NH_ACCOUNT" --password "$NH_PASSWORD" --credentials 2>/dev/null)
-  ip=$(field "$out" addr); token=$(tok "$(field "$out" token)"); key=$(tok "$(field "$out" key)"); name=$(field "$out" name)
-  if [ -z "$ip" ] || [ "$ip" = "Unknown" ]; then echo '{"error":"discover"}'; exit 0; fi
-  umask 077; mkdir -p "$CACHE_DIR"
-  printf 'IP=%q\nTOKEN=%q\nKEY=%q\nNAME=%q\n' "$ip" "$token" "$key" "$name" > "$CACHE"
-fi
-
-. "$CACHE"
-out=$(timeout 25 midea-beautiful-air-cli status --ip "$IP" --token "${TOKEN:-0}" --key "${KEY:-0}" 2>/dev/null)
+out=$(midea-beautiful-air-cli status --ip "$IP" --token "${TOKEN:-0}" --key "${KEY:-0}" 2>/dev/null)
 running=$(field "$out" running)
 [ -z "$running" ] && { echo '{"error":"absent"}'; exit 0; }
 low=$(echo "$running" | tr '[:upper:]' '[:lower:]')
@@ -40,7 +55,7 @@ CACHE="$HOME/.cache/noctalia-nethome/device.env"
 [ -s "$CACHE" ] || exit 0
 . "$CACHE"
 py="$(dirname "$(readlink -f "$(command -v midea-beautiful-air-cli)")")/python"
-timeout 40 "$py" -c "
+"$py" -c "
 import sys, logging
 logging.disable(logging.ERROR)
 from midea_beautiful import appliance_state
@@ -121,22 +136,43 @@ local function render(data)
     barWidget.setTooltip(rows)
 end
 
--- Fast poll until first status (discover + slow V2 status can take ~40s), then settle.
+local function decode(stdout)
+    local line = (stdout or ""):match("({.-})")
+    if line then return noctalia.json.decode(line) end
+    return nil
+end
+
+-- Fast poll until first status, then settle to the configured interval.
 local settled = false
-local warmDeadline = os.time() + 60
+local warmDeadline = os.time() + 90
+local polling = false
+
+local function settle(gotData)
+    if not settled and (gotData or os.time() >= warmDeadline) then
+        settled = true
+        local secs = noctalia.getConfig("poll_interval") or 30
+        noctalia.setUpdateInterval(secs * 1000)
+    end
+end
 
 local function poll()
-    noctalia.runAsync(withCreds(GATHER), function(r)
-        local data = nil
-        local line = (r.stdout or ""):match("({.-})")
-        if line then data = noctalia.json.decode(line) end
-        render(data)
-        if not settled and ((data and data.error == nil) or os.time() >= warmDeadline) then
-            settled = true
-            local secs = noctalia.getConfig("poll_interval") or 30
-            noctalia.setUpdateInterval(secs * 1000)
+    if polling then return end
+    polling = true
+    noctalia.runAsync(withCreds(DISCOVER), function(r)
+        local d = decode(r.stdout)
+        if not d or d.error then
+            polling = false
+            render(d)
+            settle(false)
+            return
         end
-    end)
+        noctalia.runAsync(STATUS, function(r2)
+            polling = false
+            local s = decode(r2.stdout)
+            render(s)
+            settle(s and s.error == nil)
+        end, 30000)
+    end, 60000)
 end
 
 noctalia.setUpdateInterval(3000)
@@ -151,6 +187,7 @@ local lastCreds = nil
 function onConfigChanged()
     local creds = (noctalia.getConfig("account") or "") .. "\n" .. (noctalia.getConfig("password") or "")
     if lastCreds ~= nil and creds ~= lastCreds then
+        discoverNotified = false
         noctalia.runAsync('rm -f "$HOME/.cache/noctalia-nethome/device.env"', function()
             poll()
         end)
@@ -170,7 +207,7 @@ function onClick()
     local target = lastRunning and "0" or "1"
     noctalia.runAsync("NH_RUNNING=" .. target .. " " .. TOGGLE, function()
         poll()
-    end)
+    end, 60000)
 end
 
 lastCreds = (noctalia.getConfig("account") or "") .. "\n" .. (noctalia.getConfig("password") or "")
