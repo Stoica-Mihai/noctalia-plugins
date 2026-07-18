@@ -50,7 +50,16 @@ num() { case "$1" in ''|None) echo null ;; *) echo "$1" ;; esac; }
 
 out=$(midea-beautiful-air-cli status --ip "$IP" --token "${TOKEN:-0}" --key "${KEY:-0}" 2>/dev/null)
 running=$(field "$out" running)
-[ -z "$running" ] && { echo '{"error":"absent"}'; exit 0; }
+if [ -z "$running" ]; then
+  # Protocol failed — TCP probe splits device-busy (present, refuses another
+  # session) from truly gone.
+  if timeout 1 bash -c "exec 3<>/dev/tcp/$IP/6444" 2>/dev/null; then
+    echo '{"error":"busy"}'
+  else
+    echo '{"error":"absent"}'
+  fi
+  exit 0
+fi
 low=$(echo "$running" | tr '[:upper:]' '[:lower:]')
 printf '{"name":"%s","running":%s,"indoor":%s,"target":%s,"mode":%s}\n' \
   "$(jesc "${NAME:-AC}")" "$low" "$(num "$(field "$out" indoor)")" "$(num "$(field "$out" target)")" "$(num "$(field "$out" mode)")"
@@ -241,6 +250,19 @@ local function onResult(d)
     end
 
     local err = d and d.error
+    -- Busy = the AC answers TCP but refused the protocol session (another
+    -- client, or mid-command). It is present: never hide, keep last state.
+    if err == "busy" then
+        fails = 0
+        if not lastGood then
+            barWidget.setVisible(true)
+            barWidget.setGlyph("snowflake")
+            barWidget.setGlyphColor("outline")
+            barWidget.setText("")
+            barWidget.setTooltip("AC busy, retrying…")
+        end
+        return false
+    end
     if err == "nocli" or err == "setup" or err == "discover" then
         lastGood = nil
         fails = 0

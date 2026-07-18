@@ -1,6 +1,6 @@
 id = "mcs/nethome"
 name = "NetHome AC"
-version = "0.4.4"
+version = "0.5.0"
 author = "MCS"
 description = "Midea AC via NetHome Plus: status in the bar, control panel for power/mode/temperature (LAN-only after one-time login)"
 license = "MIT"
