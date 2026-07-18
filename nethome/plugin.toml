@@ -1,8 +1,8 @@
 id = "mcs/nethome"
 name = "NetHome AC"
-version = "0.6.0"
+version = "0.7.0"
 author = "MCS"
-description = "Midea AC via NetHome Plus: status in the bar, control panel for power/mode/temperature (LAN-only after one-time login)"
+description = "Midea AC (NetHome Plus gen): status in the bar, control panel for power/mode/temperature, pure-LAN via msmart-ng"
 license = "MIT"
 min_noctalia = "5.0.0"
 plugin_api = 3
@@ -21,17 +21,10 @@ placement = "floating"
 open_near_click = true
 
 [[widget.setting]]
-key = "account"
+key = "device_name"
 type = "string"
-label_key = "settings.account.label"
-description_key = "settings.account.description"
-default = ""
-
-[[widget.setting]]
-key = "password"
-type = "string"
-label_key = "settings.password.label"
-description_key = "settings.password.description"
+label_key = "settings.device_name.label"
+description_key = "settings.device_name.description"
 default = ""
 
 [[widget.setting]]

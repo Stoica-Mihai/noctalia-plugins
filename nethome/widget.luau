@@ -1,58 +1,73 @@
--- Midea AC via NetHome Plus: indoor temp in the bar, click opens the control
--- panel. This entry owns all device I/O — polling, commands, and pending
--- confirmation — and shares with the panel through noctalia.state: it
--- publishes "status" and executes "command" requests.
+-- Midea AC in the bar: indoor temp, click opens the control panel. This
+-- entry owns all device I/O — polling, commands, pending confirmation — and
+-- shares with the panel through noctalia.state: it publishes "status" and
+-- executes "command" requests.
 --
--- One-time cloud discover caches ip/token/key to ~/.cache/noctalia-nethome/,
--- then every poll and command is a direct LAN exchange. V2-protocol devices
--- have no token/key (LAN is unauthenticated); the CLI still demands truthy
--- values, so dummies are passed.
+-- Everything runs on msmart-ng over the LAN. Discovery is a UDP broadcast
+-- (no cloud, no account): V2 devices have no LAN auth at all. The device
+-- REQUIRES the B5 capabilities handshake before it accepts control commands
+-- — msmart-ng performs it on the command path.
 --
--- Discover (~40-60s) and status (~11s on devices that never answer the
--- capabilities query) run as separate runAsync calls: each needs its own
--- timeout budget, and runAsync defaults to 5s.
---
--- V2 devices are flaky: polls sometimes time out and sometimes return a
--- zeroed frame (running=False, target=0, indoor=denormal). A single bad poll
--- must not flap the widget, so results go through a validity check and the
--- last good state is kept until several polls in a row fail.
+-- The wifi module is fragile: single protocol session at a time, wedges
+-- under pressure (once needed a mains power-cycle), occasionally times out.
+-- Hence: hard floor between sessions, busy-vs-absent TCP probe, last-good
+-- state kept through flaky polls, command retries with confirmation.
 
--- Ensures the device cache exists. Prints {"ok":true} when cache is ready,
--- an {"error":...} JSON otherwise. Discover stderr lands in discover.log.
+-- Broadcast-discovers the first AC on the LAN and caches ip/id/ssid.
+-- Prints {"ok":true} when the cache is ready, {"error":...} otherwise.
 local DISCOVER = [[
 CACHE_DIR="$HOME/.cache/noctalia-nethome"
 CACHE="$CACHE_DIR/device.env"
 
-{ command -v midea-beautiful-air-cli && command -v msmart-ng; } >/dev/null 2>&1 || { echo '{"error":"nocli"}'; exit 0; }
+command -v msmart-ng >/dev/null 2>&1 || { echo '{"error":"nocli"}'; exit 0; }
 [ -s "$CACHE" ] && grep -q '^ID=' "$CACHE" && { echo '{"ok":true}'; exit 0; }
 
-field() { echo "$1" | sed -n "s/^  $2 *= *//p" | head -1; }
-tok() { case "$1" in None) echo "" ;; *) echo "$1" ;; esac; }
-
-if [ -z "$NH_ACCOUNT" ] || [ -z "$NH_PASSWORD" ]; then echo '{"error":"setup"}'; exit 0; fi
 umask 077; mkdir -p "$CACHE_DIR"
-out=$(midea-beautiful-air-cli discover --account "$NH_ACCOUNT" --password "$NH_PASSWORD" --credentials 2>"$CACHE_DIR/discover.log")
-ip=$(field "$out" addr); token=$(tok "$(field "$out" token)"); key=$(tok "$(field "$out" key)"); name=$(field "$out" name); id=$(field "$out" id)
-if [ -z "$ip" ] || [ "$ip" = "Unknown" ] || [ -z "$id" ]; then echo '{"error":"discover"}'; exit 0; fi
-printf 'IP=%q\nID=%q\nTOKEN=%q\nKEY=%q\nNAME=%q\n' "$ip" "$id" "$token" "$key" "$name" > "$CACHE"
+py="$(dirname "$(readlink -f "$(command -v msmart-ng)")")/python"
+out=$("$py" -c "
+import asyncio
+from msmart.discover import Discover
+from msmart.device import AirConditioner
+
+async def main():
+    for d in await Discover.discover(discovery_packets=2):
+        if isinstance(d, AirConditioner):
+            print(d.ip, d.id, d.name or 'AC')
+            return
+
+asyncio.run(main())
+" 2>"$CACHE_DIR/discover.log")
+set -- $out
+if [ -z "$1" ] || [ -z "$2" ]; then echo '{"error":"discover"}'; exit 0; fi
+ip=$1; id=$2; shift 2; name=$*
+printf 'IP=%q\nID=%q\nNAME=%q\n' "$ip" "$id" "${name:-AC}" > "$CACHE"
 echo '{"ok":true}'
 ]]
 
 -- LAN status from the cached device. Prints one JSON line.
+-- LAN status via msmart refresh (~1.3s). Prints one JSON line; on protocol
+-- failure a TCP probe splits device-busy (present) from truly gone.
 local STATUS = [[
 CACHE="$HOME/.cache/noctalia-nethome/device.env"
 [ -s "$CACHE" ] || { echo '{"error":"absent"}'; exit 0; }
 . "$CACHE"
+[ -z "$ID" ] && { echo '{"error":"absent"}'; exit 0; }
 
-field() { echo "$1" | sed -n "s/^  $2 *= *//p" | head -1; }
-jesc() { echo "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-num() { case "$1" in ''|None) echo null ;; *) echo "$1" ;; esac; }
+py="$(dirname "$(readlink -f "$(command -v msmart-ng)")")/python"
+out=$("$py" -c "
+import asyncio, json, sys
+from msmart.device import AirConditioner as AC
 
-out=$(midea-beautiful-air-cli status --ip "$IP" --token "${TOKEN:-0}" --key "${KEY:-0}" 2>/dev/null)
-running=$(field "$out" running)
-if [ -z "$running" ]; then
-  # Protocol failed — TCP probe splits device-busy (present, refuses another
-  # session) from truly gone.
+async def main():
+    d = AC(ip=sys.argv[1], port=6444, device_id=int(sys.argv[2]))
+    await d.refresh()
+    print(json.dumps({'name': sys.argv[3], 'running': bool(d.power_state),
+                      'indoor': d.indoor_temperature, 'target': d.target_temperature,
+                      'mode': int(d.operational_mode)}))
+
+asyncio.run(main())
+" "$IP" "$ID" "${NAME:-AC}" 2>/dev/null)
+if [ -z "$out" ]; then
   if timeout 1 bash -c "exec 3<>/dev/tcp/$IP/6444" 2>/dev/null; then
     echo '{"error":"busy"}'
   else
@@ -60,16 +75,12 @@ if [ -z "$running" ]; then
   fi
   exit 0
 fi
-low=$(echo "$running" | tr '[:upper:]' '[:lower:]')
-printf '{"name":"%s","running":%s,"indoor":%s,"target":%s,"mode":%s}\n' \
-  "$(jesc "${NAME:-AC}")" "$low" "$(num "$(field "$out" indoor)")" "$(num "$(field "$out" target)")" "$(num "$(field "$out" mode)")"
+echo "$out"
 ]]
 
--- Applies NH_SET ("running=1", "mode=2", "target_temperature=21") to the
--- device via msmart-ng. The device REQUIRES the B5 capabilities handshake
--- before it accepts control commands — midea-beautiful-air never does it
--- (its capabilities query is the one this device times out on), which is
--- why its power sets were flaky and its mode sets were always rejected.
+-- Applies NH_SET ("running=1", "mode=2", "target_temperature=21"). The
+-- capabilities handshake before apply is mandatory — without it the device
+-- accepts the frame and ignores it.
 local SET = [[
 CACHE="$HOME/.cache/noctalia-nethome/device.env"
 [ -s "$CACHE" ] || exit 0
@@ -101,9 +112,8 @@ asyncio.run(main())
 local MODES = { [1] = "auto", [2] = "cool", [3] = "dry", [4] = "heat", [5] = "fan" }
 
 local ERRORS = {
-    nocli = "missing CLI — uv tool install midea-beautiful-air msmart-ng",
-    setup = "Set NetHome Plus account and password in the widget settings",
-    discover = "NetHome Plus login/discover failed — check credentials and LAN",
+    nocli = "msmart-ng not found — uv tool install msmart-ng",
+    discover = "No AC found on the LAN",
 }
 
 -- Last good frame + consecutive bad polls; hide only past FAIL_LIMIT.
@@ -137,13 +147,6 @@ local REDISCOVER_AFTER = 10
 
 local function shq(s)
     return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
-end
-
--- env prefix so credentials never get interpolated into the script body
-local function withCreds(script)
-    local account = noctalia.getConfig("account") or ""
-    local password = noctalia.getConfig("password") or ""
-    return "NH_ACCOUNT=" .. shq(account) .. " NH_PASSWORD=" .. shq(password) .. " " .. script
 end
 
 -- Zeroed flaky-device frames carry target=0; real Midea targets are 16-32.
@@ -242,6 +245,8 @@ end
 -- the pending display stays. Returns true for a good frame.
 local function onResult(d)
     if validFrame(d) then
+        local cfgName = noctalia.getConfig("device_name") or ""
+        if cfgName ~= "" then d.name = cfgName end
         lastGood = d
         fails = 0
         absentStreak = 0
@@ -278,7 +283,7 @@ local function onResult(d)
         end
         return false
     end
-    if err == "nocli" or err == "setup" or err == "discover" then
+    if err == "nocli" or err == "discover" then
         lastGood = nil
         fails = 0
         configErr = err
@@ -326,7 +331,7 @@ end
 local function poll()
     if polling or os.time() - lastPollDone < MIN_POLL_GAP then return end
     polling = true
-    noctalia.runAsync(withCreds(DISCOVER), function(r)
+    noctalia.runAsync(DISCOVER, function(r)
         local d = decode(r.stdout)
         if not d or d.error then
             polling = false
@@ -338,8 +343,8 @@ local function poll()
             polling = false
             lastPollDone = os.time()
             settle(onResult(decode(r2.stdout)))
-        end, 30000)
-    end, 60000)
+        end, 15000)
+    end, 20000)
 end
 
 -- Sends (or re-sends) the pending command, then polls for confirmation.
@@ -403,35 +408,17 @@ function update()
     poll()
 end
 
--- Credential change invalidates the cached device; other settings just re-poll.
-local lastCreds = nil
-
 function onConfigChanged()
-    local creds = (noctalia.getConfig("account") or "") .. "\n" .. (noctalia.getConfig("password") or "")
-    if lastCreds ~= nil and creds ~= lastCreds then
-        lastGood = nil
-        fails = 0
-        configErr = nil
-        pending = nil
-        discoverNotified = false
-        applyInterval()
-        publish()
-        noctalia.runAsync('rm -f "$HOME/.cache/noctalia-nethome/device.env"', function()
-            poll()
-        end)
-    else
-        applyInterval()
-        poll()
-    end
-    lastCreds = creds
+    applyInterval()
+    if lastGood then renderData(lastGood) end
+    publish()
+    poll()
 end
 
 -- Left click opens the control panel (power/mode/temperature live there).
 function onClick()
     noctalia.togglePanel("mcs/nethome:controls")
 end
-
-lastCreds = (noctalia.getConfig("account") or "") .. "\n" .. (noctalia.getConfig("password") or "")
 
 -- Appearance tweaks reload this entry with a fresh runtime; the state store
 -- survives in the shell process, so restore the last frame instead of sitting

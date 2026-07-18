@@ -6,9 +6,8 @@ local MODE_LIST = { "auto", "cool", "dry", "heat", "fan" }
 local MODE_ID = { auto = 1, cool = 2, dry = 3, heat = 4, fan = 5 }
 
 local ERRORS = {
-    nocli = "midea-beautiful-air-cli not installed",
-    setup = "Set account and password in the widget settings",
-    discover = "Login/discover failed — check credentials",
+    nocli = "msmart-ng not installed",
+    discover = "No AC found on the LAN",
 }
 
 local status = nil

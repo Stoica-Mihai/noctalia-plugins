@@ -1,12 +1,8 @@
 {
   "settings": {
-    "account": {
-      "label": "NetHome Plus account",
-      "description": "Email address of the NetHome Plus (Midea) account"
-    },
-    "password": {
-      "label": "NetHome Plus password",
-      "description": "Stored in plain text in the noctalia config; used once to fetch the device token, then all traffic is LAN-only"
+    "device_name": {
+      "label": "Device name",
+      "description": "Display name for the AC; empty uses the device's own network name"
     },
     "show_temp": {
       "label": "Show indoor temperature",
