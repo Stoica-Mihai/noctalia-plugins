@@ -1,7 +1,9 @@
 # NetHome AC
 
 Midea AC (paired in the NetHome Plus Android app) in the noctalia bar:
-indoor temperature + running state, left click toggles power.
+indoor temperature + running state, left click opens a control panel with
+power toggle, mode buttons (auto/cool/dry/heat/fan) and a target
+temperature slider (16–32 °C).
 
 ## Requires
 

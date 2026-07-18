@@ -49,9 +49,9 @@ icon = "battery-3"
 [[plugin]]
 id = "mcs/nethome"
 name = "NetHome AC"
-version = "0.3.1"
+version = "0.4.0"
 author = "MCS"
-description = "Midea AC via NetHome Plus: status in the bar, click to toggle power (LAN-only after one-time login)"
+description = "Midea AC via NetHome Plus: status in the bar, control panel for power/mode/temperature (LAN-only after one-time login)"
 license = "MIT"
 min_noctalia = "5.0.0"
 plugin_api = 3

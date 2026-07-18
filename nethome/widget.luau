@@ -1,4 +1,8 @@
--- Midea AC via NetHome Plus: indoor temp in the bar, click toggles power.
+-- Midea AC via NetHome Plus: indoor temp in the bar, click opens the control
+-- panel. This entry owns all device I/O — polling, commands, and pending
+-- confirmation — and shares with the panel through noctalia.state: it
+-- publishes "status" and executes "command" requests.
+--
 -- One-time cloud discover caches ip/token/key to ~/.cache/noctalia-nethome/,
 -- then every poll and command is a direct LAN exchange. V2-protocol devices
 -- have no token/key (LAN is unauthenticated); the CLI still demands truthy
@@ -52,10 +56,11 @@ printf '{"name":"%s","running":%s,"indoor":%s,"target":%s,"mode":%s}\n' \
   "$(jesc "${NAME:-AC}")" "$low" "$(num "$(field "$out" indoor)")" "$(num "$(field "$out" target)")" "$(num "$(field "$out" mode)")"
 ]]
 
--- The CLI's `set` is broken upstream (0.10.7 rejects its own pushtoken/deviceid
--- defaults as "not applicable options"), so power is toggled through the lib
--- with the venv's own python, resolved from the CLI shim.
-local TOGGLE = [[
+-- Applies NH_SET ("running=1", "mode=2", "target_temperature=21") to the
+-- device. The CLI's `set` is broken upstream (0.10.7 rejects its own
+-- pushtoken/deviceid defaults as "not applicable options"), so commands go
+-- through the lib with the venv's own python, resolved from the CLI shim.
+local SET = [[
 CACHE="$HOME/.cache/noctalia-nethome/device.env"
 [ -s "$CACHE" ] || exit 0
 . "$CACHE"
@@ -65,8 +70,17 @@ import sys, logging
 logging.disable(logging.ERROR)
 from midea_beautiful import appliance_state
 a = appliance_state(address=sys.argv[1], token=sys.argv[2], key=sys.argv[3])
-a.set_state(running=sys.argv[4] == '1')
-" "$IP" "${TOKEN:-0}" "${KEY:-0}" "$NH_RUNNING" >/dev/null 2>&1
+kw = {}
+for kv in sys.argv[4].split(','):
+    k, v = kv.split('=')
+    if k == 'running':
+        kw[k] = v == '1'
+    elif k == 'target_temperature':
+        kw[k] = float(v)
+    else:
+        kw[k] = int(v)
+a.set_state(**kw)
+" "$IP" "${TOKEN:-0}" "${KEY:-0}" "$NH_SET" >/dev/null 2>&1
 ]]
 
 local MODES = { [1] = "auto", [2] = "cool", [3] = "dry", [4] = "heat", [5] = "fan" }
@@ -81,10 +95,12 @@ local ERRORS = {
 local FAIL_LIMIT = 3
 local lastGood = nil
 local fails = 0
+local configErr = nil
 local discoverNotified = false
 
--- In-flight power command awaiting confirmation by a matching status frame.
-local pending = nil -- { target = bool, deadline = epoch }
+-- In-flight command awaiting confirmation by a status frame matching the
+-- commanded field.
+local pending = nil -- { label, match = { key, value }, deadline = epoch }
 local PENDING_TIMEOUT = 45
 -- Braille cell spinner: constant single-char footprint, dots orbit the 2x4 grid.
 local SPIN = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
@@ -111,7 +127,26 @@ local function validFrame(d)
         and type(d.target) == "number" and d.target >= 16 and d.target <= 32
 end
 
--- One tick source: fast while pending (dots animation), warm-up 3s, else poll_interval.
+local function matches(d, m)
+    if m.key == "running" then
+        return d.running == (m.value == 1)
+    end
+    return d[m.key] == m.value
+end
+
+-- Panel-facing snapshot of everything the widget knows.
+local function publish()
+    local p = pending and pending.label or nil
+    if lastGood then
+        noctalia.state.set("status", { kind = "data", data = lastGood, pending = p })
+    elseif configErr then
+        noctalia.state.set("status", { kind = "error", err = configErr, pending = p })
+    else
+        noctalia.state.set("status", { kind = "absent", pending = p })
+    end
+end
+
+-- One tick source: fast while pending (spinner), warm-up 3s, else poll_interval.
 local function applyInterval()
     if pending then
         noctalia.setUpdateInterval(250)
@@ -150,7 +185,7 @@ local function renderPending()
     barWidget.setGlyphColor("tertiary")
     spinIx = spinIx % #SPIN + 1
     barWidget.setText(SPIN[spinIx])
-    barWidget.setTooltip(pending.target and "Turning on…" or "Turning off…")
+    barWidget.setTooltip(pending.label)
 end
 
 local function renderAbsent()
@@ -176,22 +211,25 @@ end
 -- Routes a poll result: good frame renders and resets the failure streak,
 -- config errors render immediately, flaky results keep the last good frame
 -- until FAIL_LIMIT consecutive misses. While a command is pending, only a
--- frame matching the commanded state clears it; stale frames are stored but
+-- frame matching the commanded field clears it; stale frames are stored but
 -- the pending display stays. Returns true for a good frame.
 local function onResult(d)
     if validFrame(d) then
         lastGood = d
         fails = 0
+        configErr = nil
         discoverNotified = false
         if pending then
-            if d.running == pending.target then
+            if matches(d, pending.match) then
                 pending = nil
                 applyInterval()
                 renderData(d)
             end
+            publish()
             return true
         end
         renderData(d)
+        publish()
         return true
     end
 
@@ -199,6 +237,7 @@ local function onResult(d)
     if err == "nocli" or err == "setup" or err == "discover" then
         lastGood = nil
         fails = 0
+        configErr = err
         pending = nil
         applyInterval()
         if err == "discover" and not discoverNotified then
@@ -206,6 +245,7 @@ local function onResult(d)
             discoverNotified = true
         end
         renderConfigError(err)
+        publish()
         return false
     end
 
@@ -215,8 +255,10 @@ local function onResult(d)
     end
     pending = nil
     lastGood = nil
+    configErr = nil
     applyInterval()
     renderAbsent()
+    publish()
     return false
 end
 
@@ -250,6 +292,41 @@ local function poll()
     end, 60000)
 end
 
+-- Executes a panel command: sends it to the device and shows the pending
+-- spinner until a status frame confirms the commanded field.
+local function runCommand(action, value)
+    if pending or not lastGood or type(value) ~= "number" then return end
+    local kv, label, match
+    if action == "running" then
+        kv = "running=" .. value
+        label = value == 1 and "Turning on…" or "Turning off…"
+        match = { key = "running", value = value }
+    elseif action == "mode" and MODES[value] then
+        kv = "mode=" .. value
+        label = "Mode " .. MODES[value] .. "…"
+        match = { key = "mode", value = value }
+    elseif action == "target" and value >= 16 and value <= 32 then
+        kv = "target_temperature=" .. value
+        label = "Target " .. value .. "°…"
+        match = { key = "target", value = value }
+    else
+        return
+    end
+    pending = { label = label, match = match, deadline = os.time() + PENDING_TIMEOUT }
+    applyInterval()
+    renderPending()
+    publish()
+    noctalia.runAsync("NH_SET=" .. shq(kv) .. " " .. SET, function()
+        poll()
+    end, 60000)
+end
+
+noctalia.state.watch("command", function(cmd)
+    if type(cmd) == "table" and cmd.action then
+        runCommand(cmd.action, tonumber(cmd.value))
+    end
+end)
+
 noctalia.setUpdateInterval(3000)
 
 function update()
@@ -257,8 +334,9 @@ function update()
         if os.time() >= pending.deadline then
             pending = nil
             applyInterval()
-            noctalia.notify("NetHome AC", "Power command not confirmed")
+            noctalia.notify("NetHome AC", "Command not confirmed")
             if lastGood then renderData(lastGood) else renderAbsent() end
+            publish()
         else
             renderPending()
         end
@@ -274,9 +352,11 @@ function onConfigChanged()
     if lastCreds ~= nil and creds ~= lastCreds then
         lastGood = nil
         fails = 0
+        configErr = nil
         pending = nil
         discoverNotified = false
         applyInterval()
+        publish()
         noctalia.runAsync('rm -f "$HOME/.cache/noctalia-nethome/device.env"', function()
             poll()
         end)
@@ -287,18 +367,11 @@ function onConfigChanged()
     lastCreds = creds
 end
 
--- Left click sends the power command and shows a pending animation until a
--- status frame confirms the new state (or the deadline notifies failure).
+-- Left click opens the control panel (power/mode/temperature live there).
 function onClick()
-    if pending or not lastGood then return end
-    local target = not lastGood.running
-    pending = { target = target, deadline = os.time() + PENDING_TIMEOUT }
-    applyInterval()
-    renderPending()
-    noctalia.runAsync("NH_RUNNING=" .. (target and "1" or "0") .. " " .. TOGGLE, function()
-        poll()
-    end, 60000)
+    noctalia.togglePanel("mcs/nethome:controls")
 end
 
 lastCreds = (noctalia.getConfig("account") or "") .. "\n" .. (noctalia.getConfig("password") or "")
+publish()
 poll()
