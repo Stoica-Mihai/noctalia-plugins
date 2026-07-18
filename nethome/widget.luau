@@ -86,8 +86,9 @@ local discoverNotified = false
 -- In-flight power command awaiting confirmation by a matching status frame.
 local pending = nil -- { target = bool, deadline = epoch }
 local PENDING_TIMEOUT = 45
-local DOTS = { "·", "··", "···", "··" }
-local dotIx = 0
+-- Braille cell spinner: constant single-char footprint, dots orbit the 2x4 grid.
+local SPIN = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+local spinIx = 0
 
 local settled = false
 local warmDeadline = os.time() + 90
@@ -113,7 +114,7 @@ end
 -- One tick source: fast while pending (dots animation), warm-up 3s, else poll_interval.
 local function applyInterval()
     if pending then
-        noctalia.setUpdateInterval(500)
+        noctalia.setUpdateInterval(250)
     elseif settled then
         noctalia.setUpdateInterval((noctalia.getConfig("poll_interval") or 30) * 1000)
     else
@@ -147,8 +148,8 @@ local function renderPending()
     barWidget.setVisible(true)
     barWidget.setGlyph("snowflake")
     barWidget.setGlyphColor("tertiary")
-    dotIx = dotIx % #DOTS + 1
-    barWidget.setText(DOTS[dotIx])
+    spinIx = spinIx % #SPIN + 1
+    barWidget.setText(SPIN[spinIx])
     barWidget.setTooltip(pending.target and "Turning on…" or "Turning off…")
 end
 
