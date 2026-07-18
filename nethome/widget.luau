@@ -389,5 +389,21 @@ function onClick()
 end
 
 lastCreds = (noctalia.getConfig("account") or "") .. "\n" .. (noctalia.getConfig("password") or "")
+
+-- Appearance tweaks reload this entry with a fresh runtime; the state store
+-- survives in the shell process, so restore the last frame instead of sitting
+-- invisible until the first slow poll lands. True cold start shows the glyph
+-- with a connecting hint rather than nothing.
+local restored = noctalia.state.get("status")
+if restored and restored.kind == "data" and validFrame(restored.data) then
+    lastGood = restored.data
+    renderData(lastGood)
+else
+    barWidget.setVisible(true)
+    barWidget.setGlyph("snowflake")
+    barWidget.setGlyphColor("outline")
+    barWidget.setText("")
+    barWidget.setTooltip("Connecting to AC…")
+end
 publish()
 poll()
