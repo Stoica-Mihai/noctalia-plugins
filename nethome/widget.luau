@@ -83,6 +83,16 @@ local lastGood = nil
 local fails = 0
 local discoverNotified = false
 
+-- In-flight power command awaiting confirmation by a matching status frame.
+local pending = nil -- { target = bool, deadline = epoch }
+local PENDING_TIMEOUT = 45
+local DOTS = { "·", "··", "···", "··" }
+local dotIx = 0
+
+local settled = false
+local warmDeadline = os.time() + 90
+local polling = false
+
 local function shq(s)
     return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
 end
@@ -100,9 +110,21 @@ local function validFrame(d)
         and type(d.target) == "number" and d.target >= 16 and d.target <= 32
 end
 
+-- One tick source: fast while pending (dots animation), warm-up 3s, else poll_interval.
+local function applyInterval()
+    if pending then
+        noctalia.setUpdateInterval(500)
+    elseif settled then
+        noctalia.setUpdateInterval((noctalia.getConfig("poll_interval") or 30) * 1000)
+    else
+        noctalia.setUpdateInterval(3000)
+    end
+end
+
 local function renderData(d)
     barWidget.setVisible(true)
     barWidget.setGlyph("snowflake")
+    barWidget.setGlyphColor("on_surface")
 
     local showTemp = noctalia.getConfig("show_temp")
     local hasIndoor = type(d.indoor) == "number"
@@ -121,6 +143,15 @@ local function renderData(d)
     barWidget.setTooltip(rows)
 end
 
+local function renderPending()
+    barWidget.setVisible(true)
+    barWidget.setGlyph("snowflake")
+    barWidget.setGlyphColor("tertiary")
+    dotIx = dotIx % #DOTS + 1
+    barWidget.setText(DOTS[dotIx])
+    barWidget.setTooltip(pending.target and "Turning on…" or "Turning off…")
+end
+
 local function renderAbsent()
     if noctalia.getConfig("hide_when_absent") then
         barWidget.setVisible(false)
@@ -128,6 +159,7 @@ local function renderAbsent()
     end
     barWidget.setVisible(true)
     barWidget.setGlyph("snowflake")
+    barWidget.setGlyphColor("on_surface")
     barWidget.setText("")
     barWidget.setTooltip("AC not reachable")
 end
@@ -135,18 +167,29 @@ end
 local function renderConfigError(err)
     barWidget.setVisible(true)
     barWidget.setGlyph("snowflake")
+    barWidget.setGlyphColor("on_surface")
     barWidget.setText("")
     barWidget.setTooltip(ERRORS[err] or ("NetHome error: " .. tostring(err)))
 end
 
 -- Routes a poll result: good frame renders and resets the failure streak,
 -- config errors render immediately, flaky results keep the last good frame
--- until FAIL_LIMIT consecutive misses. Returns true for a good frame.
+-- until FAIL_LIMIT consecutive misses. While a command is pending, only a
+-- frame matching the commanded state clears it; stale frames are stored but
+-- the pending display stays. Returns true for a good frame.
 local function onResult(d)
     if validFrame(d) then
         lastGood = d
         fails = 0
         discoverNotified = false
+        if pending then
+            if d.running == pending.target then
+                pending = nil
+                applyInterval()
+                renderData(d)
+            end
+            return true
+        end
         renderData(d)
         return true
     end
@@ -155,6 +198,8 @@ local function onResult(d)
     if err == "nocli" or err == "setup" or err == "discover" then
         lastGood = nil
         fails = 0
+        pending = nil
+        applyInterval()
         if err == "discover" and not discoverNotified then
             noctalia.notifyError("NetHome AC", ERRORS.discover)
             discoverNotified = true
@@ -164,10 +209,12 @@ local function onResult(d)
     end
 
     fails = fails + 1
-    if lastGood and fails < FAIL_LIMIT then
+    if (lastGood or pending) and fails < FAIL_LIMIT then
         return false
     end
+    pending = nil
     lastGood = nil
+    applyInterval()
     renderAbsent()
     return false
 end
@@ -178,16 +225,10 @@ local function decode(stdout)
     return nil
 end
 
--- Fast poll until first status, then settle to the configured interval.
-local settled = false
-local warmDeadline = os.time() + 90
-local polling = false
-
 local function settle(gotData)
     if not settled and (gotData or os.time() >= warmDeadline) then
         settled = true
-        local secs = noctalia.getConfig("poll_interval") or 30
-        noctalia.setUpdateInterval(secs * 1000)
+        applyInterval()
     end
 end
 
@@ -211,6 +252,16 @@ end
 noctalia.setUpdateInterval(3000)
 
 function update()
+    if pending then
+        if os.time() >= pending.deadline then
+            pending = nil
+            applyInterval()
+            noctalia.notify("NetHome AC", "Power command not confirmed")
+            if lastGood then renderData(lastGood) else renderAbsent() end
+        else
+            renderPending()
+        end
+    end
     poll()
 end
 
@@ -222,28 +273,28 @@ function onConfigChanged()
     if lastCreds ~= nil and creds ~= lastCreds then
         lastGood = nil
         fails = 0
+        pending = nil
         discoverNotified = false
+        applyInterval()
         noctalia.runAsync('rm -f "$HOME/.cache/noctalia-nethome/device.env"', function()
             poll()
         end)
     else
-        if settled then
-            local secs = noctalia.getConfig("poll_interval") or 30
-            noctalia.setUpdateInterval(secs * 1000)
-        end
+        applyInterval()
         poll()
     end
     lastCreds = creds
 end
 
--- Left click toggles power from the last known state. Optimistic: the UI
--- flips immediately, the follow-up poll corrects it if the device disagreed.
+-- Left click sends the power command and shows a pending animation until a
+-- status frame confirms the new state (or the deadline notifies failure).
 function onClick()
-    if not lastGood then return end
-    local target = lastGood.running and "0" or "1"
-    lastGood.running = not lastGood.running
-    renderData(lastGood)
-    noctalia.runAsync("NH_RUNNING=" .. target .. " " .. TOGGLE, function()
+    if pending or not lastGood then return end
+    local target = not lastGood.running
+    pending = { target = target, deadline = os.time() + PENDING_TIMEOUT }
+    applyInterval()
+    renderPending()
+    noctalia.runAsync("NH_RUNNING=" .. (target and "1" or "0") .. " " .. TOGGLE, function()
         poll()
     end, 60000)
 end
