@@ -49,7 +49,7 @@ icon = "battery-3"
 [[plugin]]
 id = "mcs/nethome"
 name = "NetHome AC"
-version = "0.7.0"
+version = "0.7.1"
 author = "MCS"
 description = "Midea AC (NetHome Plus gen): status in the bar, control panel for power/mode/temperature, pure-LAN via msmart-ng"
 license = "MIT"

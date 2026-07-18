@@ -94,7 +94,16 @@ from msmart.device import AirConditioner as AC
 async def main():
     d = AC(ip=sys.argv[1], port=6444, device_id=int(sys.argv[2]))
     await d.get_capabilities()
-    await d.refresh()
+    # apply() sends the FULL state back, and this device sometimes answers
+    # refresh with a zeroed frame — applying on top of that pushes power=off
+    # and garbage target. Never apply over an invalid refresh.
+    for _ in range(3):
+        await d.refresh()
+        if d.target_temperature and 16 <= d.target_temperature <= 32:
+            break
+        await asyncio.sleep(1)
+    else:
+        sys.exit(1)
     for kv in sys.argv[3].split(','):
         k, v = kv.split('=')
         if k == 'running':
@@ -368,11 +377,13 @@ local function runCommand(action, value)
         label = value == 1 and "Turning on…" or "Turning off…"
         match = { key = "running", value = value }
     elseif action == "mode" and MODES[value] then
-        kv = "mode=" .. value
+        -- modes are only clickable while on; pin running so a lying refresh
+        -- can't power the unit off as a side effect
+        kv = "running=1,mode=" .. value
         label = "Mode " .. MODES[value] .. "…"
         match = { key = "mode", value = value }
     elseif action == "target" and value >= 16 and value <= 32 then
-        kv = "target_temperature=" .. value
+        kv = "running=" .. (lastGood.running and 1 or 0) .. ",target_temperature=" .. value
         label = "Target " .. value .. "°…"
         match = { key = "target", value = value }
     else
