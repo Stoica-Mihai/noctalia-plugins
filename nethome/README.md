@@ -7,8 +7,11 @@ temperature slider (16–32 °C).
 
 ## Requires
 
-- `midea-beautiful-air-cli` on PATH: `uv tool install midea-beautiful-air`
-  (or `pipx install midea-beautiful-air`)
+- `midea-beautiful-air-cli` and `msmart-ng` on PATH:
+  `uv tool install midea-beautiful-air && uv tool install msmart-ng`
+  (or the `pipx` equivalents). Discovery/status use the former; commands go
+  through msmart-ng, which performs the capabilities handshake some devices
+  require before accepting controls.
 - The AC on the same LAN as this machine.
 
 ## How it works

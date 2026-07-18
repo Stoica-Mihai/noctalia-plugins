@@ -23,8 +23,8 @@ local DISCOVER = [[
 CACHE_DIR="$HOME/.cache/noctalia-nethome"
 CACHE="$CACHE_DIR/device.env"
 
-command -v midea-beautiful-air-cli >/dev/null 2>&1 || { echo '{"error":"nocli"}'; exit 0; }
-[ -s "$CACHE" ] && { echo '{"ok":true}'; exit 0; }
+{ command -v midea-beautiful-air-cli && command -v msmart-ng; } >/dev/null 2>&1 || { echo '{"error":"nocli"}'; exit 0; }
+[ -s "$CACHE" ] && grep -q '^ID=' "$CACHE" && { echo '{"ok":true}'; exit 0; }
 
 field() { echo "$1" | sed -n "s/^  $2 *= *//p" | head -1; }
 tok() { case "$1" in None) echo "" ;; *) echo "$1" ;; esac; }
@@ -32,9 +32,9 @@ tok() { case "$1" in None) echo "" ;; *) echo "$1" ;; esac; }
 if [ -z "$NH_ACCOUNT" ] || [ -z "$NH_PASSWORD" ]; then echo '{"error":"setup"}'; exit 0; fi
 umask 077; mkdir -p "$CACHE_DIR"
 out=$(midea-beautiful-air-cli discover --account "$NH_ACCOUNT" --password "$NH_PASSWORD" --credentials 2>"$CACHE_DIR/discover.log")
-ip=$(field "$out" addr); token=$(tok "$(field "$out" token)"); key=$(tok "$(field "$out" key)"); name=$(field "$out" name)
-if [ -z "$ip" ] || [ "$ip" = "Unknown" ]; then echo '{"error":"discover"}'; exit 0; fi
-printf 'IP=%q\nTOKEN=%q\nKEY=%q\nNAME=%q\n' "$ip" "$token" "$key" "$name" > "$CACHE"
+ip=$(field "$out" addr); token=$(tok "$(field "$out" token)"); key=$(tok "$(field "$out" key)"); name=$(field "$out" name); id=$(field "$out" id)
+if [ -z "$ip" ] || [ "$ip" = "Unknown" ] || [ -z "$id" ]; then echo '{"error":"discover"}'; exit 0; fi
+printf 'IP=%q\nID=%q\nTOKEN=%q\nKEY=%q\nNAME=%q\n' "$ip" "$id" "$token" "$key" "$name" > "$CACHE"
 echo '{"ok":true}'
 ]]
 
@@ -66,36 +66,42 @@ printf '{"name":"%s","running":%s,"indoor":%s,"target":%s,"mode":%s}\n' \
 ]]
 
 -- Applies NH_SET ("running=1", "mode=2", "target_temperature=21") to the
--- device. The CLI's `set` is broken upstream (0.10.7 rejects its own
--- pushtoken/deviceid defaults as "not applicable options"), so commands go
--- through the lib with the venv's own python, resolved from the CLI shim.
+-- device via msmart-ng. The device REQUIRES the B5 capabilities handshake
+-- before it accepts control commands — midea-beautiful-air never does it
+-- (its capabilities query is the one this device times out on), which is
+-- why its power sets were flaky and its mode sets were always rejected.
 local SET = [[
 CACHE="$HOME/.cache/noctalia-nethome/device.env"
 [ -s "$CACHE" ] || exit 0
 . "$CACHE"
-py="$(dirname "$(readlink -f "$(command -v midea-beautiful-air-cli)")")/python"
+[ -z "$ID" ] && exit 0
+py="$(dirname "$(readlink -f "$(command -v msmart-ng)")")/python"
 "$py" -c "
-import sys, logging
-logging.disable(logging.ERROR)
-from midea_beautiful import appliance_state
-a = appliance_state(address=sys.argv[1], token=sys.argv[2], key=sys.argv[3])
-kw = {}
-for kv in sys.argv[4].split(','):
-    k, v = kv.split('=')
-    if k == 'running':
-        kw[k] = v == '1'
-    elif k == 'target_temperature':
-        kw[k] = float(v)
-    else:
-        kw[k] = int(v)
-a.set_state(**kw)
-" "$IP" "${TOKEN:-0}" "${KEY:-0}" "$NH_SET" >/dev/null 2>&1
+import asyncio, sys
+from msmart.device import AirConditioner as AC
+
+async def main():
+    d = AC(ip=sys.argv[1], port=6444, device_id=int(sys.argv[2]))
+    await d.get_capabilities()
+    await d.refresh()
+    for kv in sys.argv[3].split(','):
+        k, v = kv.split('=')
+        if k == 'running':
+            d.power_state = v == '1'
+        elif k == 'target_temperature':
+            d.target_temperature = float(v)
+        elif k == 'mode':
+            d.operational_mode = AC.OperationalMode(int(v))
+    await d.apply()
+
+asyncio.run(main())
+" "$IP" "$ID" "$NH_SET" >/dev/null 2>&1
 ]]
 
 local MODES = { [1] = "auto", [2] = "cool", [3] = "dry", [4] = "heat", [5] = "fan" }
 
 local ERRORS = {
-    nocli = "midea-beautiful-air-cli not found — uv tool install midea-beautiful-air",
+    nocli = "missing CLI — uv tool install midea-beautiful-air msmart-ng",
     setup = "Set NetHome Plus account and password in the widget settings",
     discover = "NetHome Plus login/discover failed — check credentials and LAN",
 }
