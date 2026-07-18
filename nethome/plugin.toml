@@ -1,6 +1,6 @@
 id = "mcs/nethome"
 name = "NetHome AC"
-version = "0.5.1"
+version = "0.5.2"
 author = "MCS"
 description = "Midea AC via NetHome Plus: status in the bar, control panel for power/mode/temperature (LAN-only after one-time login)"
 license = "MIT"
@@ -17,7 +17,7 @@ entry = "widget.luau"
 id = "controls"
 entry = "panel.luau"
 width = 320
-placement = "attached"
+placement = "floating"
 open_near_click = true
 
 [[widget.setting]]
