@@ -1,6 +1,6 @@
 id = "mcs/nethome"
 name = "NetHome AC"
-version = "0.5.2"
+version = "0.5.3"
 author = "MCS"
 description = "Midea AC via NetHome Plus: status in the bar, control panel for power/mode/temperature (LAN-only after one-time login)"
 license = "MIT"
@@ -53,6 +53,6 @@ key = "poll_interval"
 type = "int"
 label_key = "settings.poll_interval.label"
 description_key = "settings.poll_interval.description"
-default = 30
-min = 10
-max = 300
+default = 60
+min = 30
+max = 600

@@ -121,6 +121,13 @@ local spinIx = 0
 local settled = false
 local warmDeadline = os.time() + 90
 local polling = false
+-- The wifi module wedges under session pressure (needed a mains power-cycle
+-- once): keep a hard floor between protocol sessions and re-discover only
+-- after a long absent streak (e.g. the device came back on a new IP).
+local MIN_POLL_GAP = 8
+local lastPollDone = 0
+local absentStreak = 0
+local REDISCOVER_AFTER = 10
 
 local function shq(s)
     return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
@@ -231,6 +238,7 @@ local function onResult(d)
     if validFrame(d) then
         lastGood = d
         fails = 0
+        absentStreak = 0
         configErr = nil
         discoverNotified = false
         if pending then
@@ -254,6 +262,7 @@ local function onResult(d)
     -- client, or mid-command). It is present: never hide, keep last state.
     if err == "busy" then
         fails = 0
+        absentStreak = 0
         if not lastGood then
             barWidget.setVisible(true)
             barWidget.setGlyph("snowflake")
@@ -279,6 +288,10 @@ local function onResult(d)
     end
 
     fails = fails + 1
+    absentStreak = absentStreak + 1
+    if absentStreak == REDISCOVER_AFTER then
+        noctalia.runAsync('rm -f "$HOME/.cache/noctalia-nethome/device.env"')
+    end
     if (lastGood or pending) and fails < FAIL_LIMIT then
         return false
     end
@@ -305,17 +318,19 @@ local function settle(gotData)
 end
 
 local function poll()
-    if polling then return end
+    if polling or os.time() - lastPollDone < MIN_POLL_GAP then return end
     polling = true
     noctalia.runAsync(withCreds(DISCOVER), function(r)
         local d = decode(r.stdout)
         if not d or d.error then
             polling = false
+            lastPollDone = os.time()
             settle(onResult(d))
             return
         end
         noctalia.runAsync(STATUS, function(r2)
             polling = false
+            lastPollDone = os.time()
             settle(onResult(decode(r2.stdout)))
         end, 30000)
     end, 60000)
